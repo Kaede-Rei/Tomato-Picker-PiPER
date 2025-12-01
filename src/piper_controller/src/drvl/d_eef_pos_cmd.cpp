@@ -1,5 +1,6 @@
 #include "drvl/d_eef_pos_cmd.hpp"
 
+#include <cmath>
 #include <queue>
 #include <unordered_map>
 
@@ -20,7 +21,6 @@ namespace piper
 
 
     /* ========================= 接 口 类 / 函 数 实 现 ========================= */
-
 
     /**
      * @brief 机械臂末端执行器位姿控制类构造函数
@@ -49,7 +49,7 @@ namespace piper
         _scene_monitor_->startSceneMonitor();
         _scene_monitor_->startWorldGeometryMonitor();
         _scene_monitor_->startStateMonitor();
-        
+
         ros::Duration(1.0).sleep();
         _planning_scene_ = _scene_monitor_->getPlanningScene();
 
@@ -115,6 +115,7 @@ namespace piper
         tf2::Quaternion q_orig;
         double roll_orig, pitch_orig, yaw_orig;
         if(need_feedforward){
+            // 获取底座到末端连线向外方向单位向量，作为末端Z轴在基坐标系下的表示
             tf2::Vector3 z_axis(
                 target_pose.position.x,
                 target_pose.position.y,
@@ -126,10 +127,12 @@ namespace piper
             }
             z_axis.normalize();
 
+            // 默认X轴，若平行于Z轴则改用旋转90°，再计算Y轴
             tf2::Vector3 x_axis(1, 0, 0);
             if(std::abs(z_axis.dot(x_axis)) > 0.9999) x_axis = tf2::Vector3(0, 1, 0);
             tf2::Vector3 y_axis = z_axis.cross(x_axis).normalize();
 
+            // 构造旋转矩阵并转换为四元数
             tf2::Matrix3x3 rot_matrix(
                 x_axis.x(), y_axis.x(), z_axis.x(),
                 x_axis.y(), y_axis.y(), z_axis.y(),
@@ -148,7 +151,7 @@ namespace piper
 
         // A*搜索初始化
         const int step_count = static_cast<int>(std::ceil(radius / step));
-        auto heuristic = [](double droll, double dpitch) -> double{ return std::hypot(droll, dpitch); };
+        auto heuristic = [](double droll, double dpitch){ return std::hypot(droll, dpitch); };
 
         std::priority_queue<AStarNode_t, std::vector<AStarNode_t>, AstarNodeCmper> open_set;
         AStarNode_t start_node = {0.0, 0.0, 0.0, heuristic(0.0, 0.0), 0.0};
@@ -172,7 +175,7 @@ namespace piper
         // A*搜索过程
         while(!open_set.empty()){
             if(++expand_count > max_expand){
-                ROS_WARN("A*搜索超出最大扩展节点数，终止搜索。");
+                ROS_ERROR("A*搜索超出最大扩展节点数，终止搜索。");
                 break;
             }
 
@@ -239,12 +242,12 @@ namespace piper
     }
 
     /**
-     * @brief 移动到机械臂末端执行器目标位姿
+     * @brief 移动到机械臂末端执行器目标位姿，参考坐标系为底座
      * @param target_pose 目标位姿
      * @param allow_tweak 是否允许微调(默认允许)
      * @return 是否到达成功
      */
-    bool EefPoseCmd::setGoalPoseEef(geometry_msgs::PoseStamped& target_pose, bool allow_tweak)
+    bool EefPoseCmd::setGoalPoseBase(geometry_msgs::PoseStamped& target_pose, bool allow_tweak)
     {
         target_pose.header.frame_id = _plan_frame_;
         target_pose.header.stamp = ros::Time::now();
@@ -291,6 +294,179 @@ namespace piper
         return true;
     }
 
+    /**
+     * @brief 移动到机械臂末端执行器目标位姿，参考坐标系为末端
+     * @param target_pose 目标位姿
+     * @param allow_tweak 是否允许微调(默认允许)
+     * @return 是否到达成功
+     * @note 用于前伸与后缩时，设d为伸缩距离，则目标位姿(x,y,z,roll,pitch,yaw) = (0,0,d,0,0,0)
+     * @note 用于旋转时，设angle为旋转角度，则目标位姿(x,y,z,roll,pitch,yaw) = (0,0,0,0,0,angle)
+     */
+    bool EefPoseCmd::setGoalPoseEef(geometry_msgs::PoseStamped& target_pose, bool allow_tweak)
+    {
+        // 把目标位姿从eef坐标系转换到base坐标系
+        geometry_msgs::PoseStamped target_pose_base;
+        eefTfBase(target_pose, target_pose_base);
+
+        // 调用基坐标系下的移动函数
+        return setGoalPoseBase(target_pose_base, allow_tweak);
+    }
+
+    /**
+     * @brief 机械臂末端执行器前伸或后缩
+     * @param distance 伸缩距离，正值为前伸，负值为后缩
+     * @return 是否到达成功
+     */
+    bool EefPoseCmd::eefStretch(double distance)
+    {
+        geometry_msgs::PoseStamped target_pose_eef;
+        target_pose_eef.pose.position.x = 0.0;
+        target_pose_eef.pose.position.y = 0.0;
+        target_pose_eef.pose.position.z = distance;
+        target_pose_eef.pose.orientation.w = 1.0;
+        target_pose_eef.pose.orientation.x = 0.0;
+        target_pose_eef.pose.orientation.y = 0.0;
+        target_pose_eef.pose.orientation.z = 0.0;
+
+        return setGoalPoseEef(target_pose_eef, true);
+    }
+
+    /**
+     * @brief 机械臂末端执行器旋转
+     * @param angle 旋转角度，单位为弧度，正值为逆时针旋转，负值为顺时针旋转
+     * @return 是否到达成功
+     */
+    bool EefPoseCmd::eefRotate(double angle)
+    {
+        geometry_msgs::PoseStamped target_pose_eef;
+        target_pose_eef.pose.position.x = 0.0;
+        target_pose_eef.pose.position.y = 0.0;
+        target_pose_eef.pose.position.z = 0.0;
+
+        tf2::Quaternion q;
+        q.setRPY(0.0, 0.0, angle);
+        target_pose_eef.pose.orientation = tf2::toMsg(q);
+
+        return setGoalPoseEef(target_pose_eef, true);
+    }
+
+    /**
+     * @brief 重置机械臂到初始位置
+     */
+    void EefPoseCmd::resetToZero(void)
+    {
+        ROS_INFO("重置机械臂到初始位置...");
+        _arm_.setNamedTarget("zero");
+        _arm_.move();
+    }
+
+    /**
+     * @brief 获取当前机械臂末端执行器位姿
+     * @return 末端执行器位姿
+     */
+    geometry_msgs::Pose EefPoseCmd::getCurrentEefPose(void)
+    {
+        return _arm_.getCurrentPose().pose;
+    }
+
+    /**
+     * @brief 获取当前机械臂关节位置
+     * @return 关节位置向量
+     */
+    std::vector<double> EefPoseCmd::getCurrentJointPose(void)
+    {
+        return _arm_.getCurrentJointValues();
+    }
+
+    /**
+     * @brief 任务组规划器构造函数
+     * @param eef_cmd 机械臂末端执行器位姿控制类引用
+     */
+    TaskGroupPlanner::TaskGroupPlanner(EefPoseCmd& eef_cmd)
+        : _eef_cmd_(eef_cmd)
+    { }
+
+    /**
+     * @brief 添加任务目标到任务列表
+     * @param target 任务目标
+     */
+    void TaskGroupPlanner::add(const TaskTarget_t& target)
+    {
+        _task_list_.push_back(target);
+    }
+
+    /**
+     * @brief 清空任务列表
+     */
+    void TaskGroupPlanner::clear()
+    {
+        _task_list_.clear();
+    }
+
+    /**
+     * @brief 执行路径优化后的所有任务
+     * @note 采用贪婪最近邻算法对点位进行排序，实现最短的移动路径
+     */
+    void TaskGroupPlanner::executeAll()
+    {
+        if(_task_list_.empty()){
+            ROS_ERROR("任务列表为空，无法执行任务。");
+            return;
+        }
+
+        ROS_INFO("开始规划任务组，共 %lu 个目标点。", _task_list_.size());
+
+        // 初始化排序结果、待处理任务列表与当前末端位姿
+        std::vector<TaskTarget_t> sorted_tasks;
+        std::vector<TaskTarget_t> pending_tasks = _task_list_;
+        geometry_msgs::Pose current_pose = _eef_cmd_.getCurrentEefPose();
+
+        // 距离计算Lambda函数
+        auto calc_dist = [](const geometry_msgs::Pose& pose1, const geometry_msgs::Pose& pose2){
+            const double dx = pose1.position.x - pose2.position.x;
+            const double dy = pose1.position.y - pose2.position.y;
+            const double dz = pose1.position.z - pose2.position.z;
+            return std::sqrt(dx * dx + dy * dy + dz * dz);
+            };
+
+        // 执行排序
+        while(!pending_tasks.empty()){
+            // 找到距离当前排序位姿最近的任务
+            auto nearest_it = std::min_element(
+                pending_tasks.begin(),
+                pending_tasks.end(),
+                [&](const auto& a, const auto& b){
+                    return calc_dist(current_pose, a.pose) < calc_dist(current_pose, b.pose);
+                }
+            );
+            // 更新排序结果与当前排序位姿
+            sorted_tasks.push_back(*nearest_it);
+            current_pose = nearest_it->pose;
+            pending_tasks.erase(nearest_it);
+        }
+
+        // 依次执行排序后的任务
+        std::size_t task_index = 1;
+        for(const auto& task : sorted_tasks){
+            ROS_INFO("任务 [%zu/%zu] 开始执行。", task_index, sorted_tasks.size());
+            bool success = false;
+
+            geometry_msgs::PoseStamped target_pose;
+            target_pose.pose = task.pose;
+            success = _eef_cmd_.setGoalPoseBase(target_pose, true);
+
+            if(!success) ROS_WARN("任务 [%zu] 失败。", task_index);
+
+            if(task.action == TargetAction_e::PICK && success){
+                // TODO: 执行采摘动作
+            }
+            if(task.wait_time > 0.0) ros::Duration(task.wait_time).sleep();
+            ++task_index;
+        }
+
+        ROS_INFO("所有任务执行完毕。");
+        clear();
+    }
 }
 
 int main(int argc, char** argv)
@@ -304,6 +480,7 @@ int main(int argc, char** argv)
     spinner.start();
 
     piper::EefPoseCmd eef_cmd(nh, "arm");
+    piper::TaskGroupPlanner task_planner(eef_cmd);
 
     double x, y, z, roll, pitch, yaw;
     if(sscanf(argv[1], "%lf,%lf,%lf,%lf,%lf,%lf", &x, &y, &z, &roll, &pitch, &yaw) == 6){
@@ -317,9 +494,32 @@ int main(int argc, char** argv)
         q.setRPY(roll * M_PI / 180.0, pitch * M_PI / 180.0, yaw * M_PI / 180.0);
         target_pose.pose.orientation = tf2::toMsg(q);
 
-        eef_cmd.setGoalPoseEef(target_pose, true);
+        piper::TaskTarget_t task[3];
+        
+        task[0].pose = target_pose.pose;
+        task[0].wait_time = 1.0;
+        task[0].action = piper::TargetAction_e::NONE;
+        
+        target_pose.pose.position.z += 0.1;
+        task[1].pose = target_pose.pose;
+        task[1].wait_time = 2.0;
+        task[1].action = piper::TargetAction_e::NONE;
+
+        target_pose.pose.position.x += 0.1;
+        task[2].pose = target_pose.pose;
+        task[2].wait_time = 3.0;
+        task[2].action = piper::TargetAction_e::NONE;
+
+        task_planner.add(task[0]);
+        task_planner.add(task[2]);
+        task_planner.add(task[1]);
+
+        task_planner.executeAll();
     }
-    else ROS_ERROR("参数错误！请输入格式：x,y,z,roll,pitch,yaw");
+    else{
+        ROS_ERROR("参数错误！请输入格式：x,y,z,roll,pitch,yaw");
+        eef_cmd.resetToZero();
+    }
 
     return 0;
 }

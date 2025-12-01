@@ -15,7 +15,7 @@ namespace piper
      * @param NONE 无动作
      * @param PICK 采摘动作
      */
-    enum class TargetAction_t{
+    enum class TargetAction_e{
         NONE = 0,
         PICK,
     };
@@ -29,7 +29,7 @@ namespace piper
     typedef struct{
         geometry_msgs::Pose pose;
         double wait_time;
-        TargetAction_t action;
+        TargetAction_e action;
     } TaskTarget_t;
 
     /**
@@ -81,7 +81,10 @@ namespace piper
         void eefTfBase(geometry_msgs::PoseStamped& target_pose_eef, geometry_msgs::PoseStamped& target_pose_base);
         bool isIkValid(const geometry_msgs::Pose& target_pose);
         bool searchReachablePose(geometry_msgs::Pose& target_pose, double step, double radius);
+        bool setGoalPoseBase(geometry_msgs::PoseStamped& target_pose, bool allow_tweak = true);
         bool setGoalPoseEef(geometry_msgs::PoseStamped& target_pose, bool allow_tweak = true);
+        bool eefStretch(double distance);
+        bool eefRotate(double angle);
         void resetToZero(void);
         geometry_msgs::Pose getCurrentEefPose(void);
         std::vector<double> getCurrentJointPose(void);
