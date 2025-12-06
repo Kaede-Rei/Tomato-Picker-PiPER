@@ -1623,6 +1623,19 @@ tf_generate_messages_cpp/fast:
 	$(MAKE) -f piper_controller/CMakeFiles/tf_generate_messages_cpp.dir/build.make piper_controller/CMakeFiles/tf_generate_messages_cpp.dir/build
 .PHONY : tf_generate_messages_cpp/fast
 
+#=============================================================================
+# Target rules for targets named piper_service
+
+# Build rule for target.
+piper_service: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 piper_service
+.PHONY : piper_service
+
+# fast build rule for target.
+piper_service/fast:
+	$(MAKE) -f piper_service/CMakeFiles/piper_service.dir/build.make piper_service/CMakeFiles/piper_service.dir/build
+.PHONY : piper_service/fast
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -1748,6 +1761,7 @@ help:
 	@echo "... tf2_msgs_generate_messages_nodejs"
 	@echo "... dynamic_reconfigure_generate_messages_cpp"
 	@echo "... tf_generate_messages_cpp"
+	@echo "... piper_service"
 .PHONY : help
 
 

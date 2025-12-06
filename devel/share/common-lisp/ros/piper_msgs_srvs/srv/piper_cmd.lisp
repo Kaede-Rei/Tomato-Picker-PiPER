@@ -301,16 +301,16 @@
   "piper_msgs_srvs/piper_cmdRequest")
 (cl:defmethod roslisp-msg-protocol:md5sum ((type (cl:eql '<piper_cmd-request>)))
   "Returns md5sum for a message object of type '<piper_cmd-request>"
-  "f532f95cf40949996985d51d8f969194")
+  "ab876838156246ec2905cd94b5756b0a")
 (cl:defmethod roslisp-msg-protocol:md5sum ((type (cl:eql 'piper_cmd-request)))
   "Returns md5sum for a message object of type 'piper_cmd-request"
-  "f532f95cf40949996985d51d8f969194")
+  "ab876838156246ec2905cd94b5756b0a")
 (cl:defmethod roslisp-msg-protocol:message-definition ((type (cl:eql '<piper_cmd-request>)))
   "Returns full string definition for message of type '<piper_cmd-request>"
-  (cl:format cl:nil "# 请求部分~%string command      # 命令~%string param1       # 参数1: 对于line/arc是起点坐标字符串~%string param2       # 参数2: 对于line/arc是终点坐标字符串~%string param3       # 参数3: 备用参数~%float64 x           # 目标位置x坐标~%float64 y           # 目标位置y坐标~%float64 z           # 目标位置z坐标~%float64 roll        # 目标姿态roll角~%float64 pitch       # 目标姿态pitch角~%float64 yaw         # 目标姿态yaw角~%~%~%"))
+  (cl:format cl:nil "# 请求部分~%string command      # 命令~%string param1       # 参数1: 备用参数~%string param2       # 参数2: 备用参数~%string param3       # 参数3: 备用参数~%float64 x           # 目标位置x坐标~%float64 y           # 目标位置y坐标~%float64 z           # 目标位置z坐标~%float64 roll        # 目标姿态roll角~%float64 pitch       # 目标姿态pitch角~%float64 yaw         # 目标姿态yaw角~%~%~%"))
 (cl:defmethod roslisp-msg-protocol:message-definition ((type (cl:eql 'piper_cmd-request)))
   "Returns full string definition for message of type 'piper_cmd-request"
-  (cl:format cl:nil "# 请求部分~%string command      # 命令~%string param1       # 参数1: 对于line/arc是起点坐标字符串~%string param2       # 参数2: 对于line/arc是终点坐标字符串~%string param3       # 参数3: 备用参数~%float64 x           # 目标位置x坐标~%float64 y           # 目标位置y坐标~%float64 z           # 目标位置z坐标~%float64 roll        # 目标姿态roll角~%float64 pitch       # 目标姿态pitch角~%float64 yaw         # 目标姿态yaw角~%~%~%"))
+  (cl:format cl:nil "# 请求部分~%string command      # 命令~%string param1       # 参数1: 备用参数~%string param2       # 参数2: 备用参数~%string param3       # 参数3: 备用参数~%float64 x           # 目标位置x坐标~%float64 y           # 目标位置y坐标~%float64 z           # 目标位置z坐标~%float64 roll        # 目标姿态roll角~%float64 pitch       # 目标姿态pitch角~%float64 yaw         # 目标姿态yaw角~%~%~%"))
 (cl:defmethod roslisp-msg-protocol:serialization-length ((msg <piper_cmd-request>))
   (cl:+ 0
      4 (cl:length (cl:slot-value msg 'command))
@@ -350,7 +350,42 @@
     :reader message
     :initarg :message
     :type cl:string
-    :initform ""))
+    :initform "")
+   (cur_x
+    :reader cur_x
+    :initarg :cur_x
+    :type cl:float
+    :initform 0.0)
+   (cur_y
+    :reader cur_y
+    :initarg :cur_y
+    :type cl:float
+    :initform 0.0)
+   (cur_z
+    :reader cur_z
+    :initarg :cur_z
+    :type cl:float
+    :initform 0.0)
+   (cur_roll
+    :reader cur_roll
+    :initarg :cur_roll
+    :type cl:float
+    :initform 0.0)
+   (cur_pitch
+    :reader cur_pitch
+    :initarg :cur_pitch
+    :type cl:float
+    :initform 0.0)
+   (cur_yaw
+    :reader cur_yaw
+    :initarg :cur_yaw
+    :type cl:float
+    :initform 0.0)
+   (cur_joint
+    :reader cur_joint
+    :initarg :cur_joint
+    :type (cl:vector cl:float)
+   :initform (cl:make-array 0 :element-type 'cl:float :initial-element 0.0)))
 )
 
 (cl:defclass piper_cmd-response (<piper_cmd-response>)
@@ -370,6 +405,41 @@
 (cl:defmethod message-val ((m <piper_cmd-response>))
   (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader piper_msgs_srvs-srv:message-val is deprecated.  Use piper_msgs_srvs-srv:message instead.")
   (message m))
+
+(cl:ensure-generic-function 'cur_x-val :lambda-list '(m))
+(cl:defmethod cur_x-val ((m <piper_cmd-response>))
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader piper_msgs_srvs-srv:cur_x-val is deprecated.  Use piper_msgs_srvs-srv:cur_x instead.")
+  (cur_x m))
+
+(cl:ensure-generic-function 'cur_y-val :lambda-list '(m))
+(cl:defmethod cur_y-val ((m <piper_cmd-response>))
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader piper_msgs_srvs-srv:cur_y-val is deprecated.  Use piper_msgs_srvs-srv:cur_y instead.")
+  (cur_y m))
+
+(cl:ensure-generic-function 'cur_z-val :lambda-list '(m))
+(cl:defmethod cur_z-val ((m <piper_cmd-response>))
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader piper_msgs_srvs-srv:cur_z-val is deprecated.  Use piper_msgs_srvs-srv:cur_z instead.")
+  (cur_z m))
+
+(cl:ensure-generic-function 'cur_roll-val :lambda-list '(m))
+(cl:defmethod cur_roll-val ((m <piper_cmd-response>))
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader piper_msgs_srvs-srv:cur_roll-val is deprecated.  Use piper_msgs_srvs-srv:cur_roll instead.")
+  (cur_roll m))
+
+(cl:ensure-generic-function 'cur_pitch-val :lambda-list '(m))
+(cl:defmethod cur_pitch-val ((m <piper_cmd-response>))
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader piper_msgs_srvs-srv:cur_pitch-val is deprecated.  Use piper_msgs_srvs-srv:cur_pitch instead.")
+  (cur_pitch m))
+
+(cl:ensure-generic-function 'cur_yaw-val :lambda-list '(m))
+(cl:defmethod cur_yaw-val ((m <piper_cmd-response>))
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader piper_msgs_srvs-srv:cur_yaw-val is deprecated.  Use piper_msgs_srvs-srv:cur_yaw instead.")
+  (cur_yaw m))
+
+(cl:ensure-generic-function 'cur_joint-val :lambda-list '(m))
+(cl:defmethod cur_joint-val ((m <piper_cmd-response>))
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader piper_msgs_srvs-srv:cur_joint-val is deprecated.  Use piper_msgs_srvs-srv:cur_joint instead.")
+  (cur_joint m))
 (cl:defmethod roslisp-msg-protocol:serialize ((msg <piper_cmd-response>) ostream)
   "Serializes a message object of type '<piper_cmd-response>"
   (cl:write-byte (cl:ldb (cl:byte 8 0) (cl:if (cl:slot-value msg 'success) 1 0)) ostream)
@@ -379,6 +449,75 @@
     (cl:write-byte (cl:ldb (cl:byte 8 16) __ros_str_len) ostream)
     (cl:write-byte (cl:ldb (cl:byte 8 24) __ros_str_len) ostream))
   (cl:map cl:nil #'(cl:lambda (c) (cl:write-byte (cl:char-code c) ostream)) (cl:slot-value msg 'message))
+  (cl:let ((bits (roslisp-utils:encode-double-float-bits (cl:slot-value msg 'cur_x))))
+    (cl:write-byte (cl:ldb (cl:byte 8 0) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 8) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 16) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 24) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 32) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 40) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 48) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 56) bits) ostream))
+  (cl:let ((bits (roslisp-utils:encode-double-float-bits (cl:slot-value msg 'cur_y))))
+    (cl:write-byte (cl:ldb (cl:byte 8 0) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 8) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 16) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 24) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 32) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 40) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 48) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 56) bits) ostream))
+  (cl:let ((bits (roslisp-utils:encode-double-float-bits (cl:slot-value msg 'cur_z))))
+    (cl:write-byte (cl:ldb (cl:byte 8 0) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 8) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 16) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 24) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 32) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 40) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 48) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 56) bits) ostream))
+  (cl:let ((bits (roslisp-utils:encode-double-float-bits (cl:slot-value msg 'cur_roll))))
+    (cl:write-byte (cl:ldb (cl:byte 8 0) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 8) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 16) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 24) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 32) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 40) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 48) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 56) bits) ostream))
+  (cl:let ((bits (roslisp-utils:encode-double-float-bits (cl:slot-value msg 'cur_pitch))))
+    (cl:write-byte (cl:ldb (cl:byte 8 0) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 8) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 16) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 24) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 32) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 40) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 48) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 56) bits) ostream))
+  (cl:let ((bits (roslisp-utils:encode-double-float-bits (cl:slot-value msg 'cur_yaw))))
+    (cl:write-byte (cl:ldb (cl:byte 8 0) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 8) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 16) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 24) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 32) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 40) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 48) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 56) bits) ostream))
+  (cl:let ((__ros_arr_len (cl:length (cl:slot-value msg 'cur_joint))))
+    (cl:write-byte (cl:ldb (cl:byte 8 0) __ros_arr_len) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 8) __ros_arr_len) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 16) __ros_arr_len) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 24) __ros_arr_len) ostream))
+  (cl:map cl:nil #'(cl:lambda (ele) (cl:let ((bits (roslisp-utils:encode-double-float-bits ele)))
+    (cl:write-byte (cl:ldb (cl:byte 8 0) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 8) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 16) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 24) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 32) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 40) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 48) bits) ostream)
+    (cl:write-byte (cl:ldb (cl:byte 8 56) bits) ostream)))
+   (cl:slot-value msg 'cur_joint))
 )
 (cl:defmethod roslisp-msg-protocol:deserialize ((msg <piper_cmd-response>) istream)
   "Deserializes a message object of type '<piper_cmd-response>"
@@ -391,6 +530,84 @@
       (cl:setf (cl:slot-value msg 'message) (cl:make-string __ros_str_len))
       (cl:dotimes (__ros_str_idx __ros_str_len msg)
         (cl:setf (cl:char (cl:slot-value msg 'message) __ros_str_idx) (cl:code-char (cl:read-byte istream)))))
+    (cl:let ((bits 0))
+      (cl:setf (cl:ldb (cl:byte 8 0) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 8) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 16) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 24) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 32) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 40) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 48) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 56) bits) (cl:read-byte istream))
+    (cl:setf (cl:slot-value msg 'cur_x) (roslisp-utils:decode-double-float-bits bits)))
+    (cl:let ((bits 0))
+      (cl:setf (cl:ldb (cl:byte 8 0) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 8) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 16) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 24) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 32) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 40) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 48) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 56) bits) (cl:read-byte istream))
+    (cl:setf (cl:slot-value msg 'cur_y) (roslisp-utils:decode-double-float-bits bits)))
+    (cl:let ((bits 0))
+      (cl:setf (cl:ldb (cl:byte 8 0) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 8) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 16) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 24) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 32) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 40) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 48) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 56) bits) (cl:read-byte istream))
+    (cl:setf (cl:slot-value msg 'cur_z) (roslisp-utils:decode-double-float-bits bits)))
+    (cl:let ((bits 0))
+      (cl:setf (cl:ldb (cl:byte 8 0) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 8) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 16) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 24) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 32) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 40) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 48) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 56) bits) (cl:read-byte istream))
+    (cl:setf (cl:slot-value msg 'cur_roll) (roslisp-utils:decode-double-float-bits bits)))
+    (cl:let ((bits 0))
+      (cl:setf (cl:ldb (cl:byte 8 0) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 8) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 16) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 24) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 32) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 40) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 48) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 56) bits) (cl:read-byte istream))
+    (cl:setf (cl:slot-value msg 'cur_pitch) (roslisp-utils:decode-double-float-bits bits)))
+    (cl:let ((bits 0))
+      (cl:setf (cl:ldb (cl:byte 8 0) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 8) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 16) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 24) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 32) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 40) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 48) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 56) bits) (cl:read-byte istream))
+    (cl:setf (cl:slot-value msg 'cur_yaw) (roslisp-utils:decode-double-float-bits bits)))
+  (cl:let ((__ros_arr_len 0))
+    (cl:setf (cl:ldb (cl:byte 8 0) __ros_arr_len) (cl:read-byte istream))
+    (cl:setf (cl:ldb (cl:byte 8 8) __ros_arr_len) (cl:read-byte istream))
+    (cl:setf (cl:ldb (cl:byte 8 16) __ros_arr_len) (cl:read-byte istream))
+    (cl:setf (cl:ldb (cl:byte 8 24) __ros_arr_len) (cl:read-byte istream))
+  (cl:setf (cl:slot-value msg 'cur_joint) (cl:make-array __ros_arr_len))
+  (cl:let ((vals (cl:slot-value msg 'cur_joint)))
+    (cl:dotimes (i __ros_arr_len)
+    (cl:let ((bits 0))
+      (cl:setf (cl:ldb (cl:byte 8 0) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 8) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 16) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 24) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 32) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 40) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 48) bits) (cl:read-byte istream))
+      (cl:setf (cl:ldb (cl:byte 8 56) bits) (cl:read-byte istream))
+    (cl:setf (cl:aref vals i) (roslisp-utils:decode-double-float-bits bits))))))
   msg
 )
 (cl:defmethod roslisp-msg-protocol:ros-datatype ((msg (cl:eql '<piper_cmd-response>)))
@@ -401,26 +618,40 @@
   "piper_msgs_srvs/piper_cmdResponse")
 (cl:defmethod roslisp-msg-protocol:md5sum ((type (cl:eql '<piper_cmd-response>)))
   "Returns md5sum for a message object of type '<piper_cmd-response>"
-  "f532f95cf40949996985d51d8f969194")
+  "ab876838156246ec2905cd94b5756b0a")
 (cl:defmethod roslisp-msg-protocol:md5sum ((type (cl:eql 'piper_cmd-response)))
   "Returns md5sum for a message object of type 'piper_cmd-response"
-  "f532f95cf40949996985d51d8f969194")
+  "ab876838156246ec2905cd94b5756b0a")
 (cl:defmethod roslisp-msg-protocol:message-definition ((type (cl:eql '<piper_cmd-response>)))
   "Returns full string definition for message of type '<piper_cmd-response>"
-  (cl:format cl:nil "# 响应部分~%bool success        # 执行是否成功~%string message      # 返回消息~%~%~%"))
+  (cl:format cl:nil "# 响应部分~%bool success        # 执行是否成功~%string message      # 返回消息~%float64 cur_x       # 当前x坐标~%float64 cur_y       # 当前y坐标~%float64 cur_z       # 当前z坐标~%float64 cur_roll    # 当前roll角~%float64 cur_pitch   # 当前pitch角~%float64 cur_yaw     # 当前yaw角~%float64[] cur_joint # 当前各关节位置数组 ~%~%~%"))
 (cl:defmethod roslisp-msg-protocol:message-definition ((type (cl:eql 'piper_cmd-response)))
   "Returns full string definition for message of type 'piper_cmd-response"
-  (cl:format cl:nil "# 响应部分~%bool success        # 执行是否成功~%string message      # 返回消息~%~%~%"))
+  (cl:format cl:nil "# 响应部分~%bool success        # 执行是否成功~%string message      # 返回消息~%float64 cur_x       # 当前x坐标~%float64 cur_y       # 当前y坐标~%float64 cur_z       # 当前z坐标~%float64 cur_roll    # 当前roll角~%float64 cur_pitch   # 当前pitch角~%float64 cur_yaw     # 当前yaw角~%float64[] cur_joint # 当前各关节位置数组 ~%~%~%"))
 (cl:defmethod roslisp-msg-protocol:serialization-length ((msg <piper_cmd-response>))
   (cl:+ 0
      1
      4 (cl:length (cl:slot-value msg 'message))
+     8
+     8
+     8
+     8
+     8
+     8
+     4 (cl:reduce #'cl:+ (cl:slot-value msg 'cur_joint) :key #'(cl:lambda (ele) (cl:declare (cl:ignorable ele)) (cl:+ 8)))
 ))
 (cl:defmethod roslisp-msg-protocol:ros-message-to-list ((msg <piper_cmd-response>))
   "Converts a ROS message object to a list"
   (cl:list 'piper_cmd-response
     (cl:cons ':success (success msg))
     (cl:cons ':message (message msg))
+    (cl:cons ':cur_x (cur_x msg))
+    (cl:cons ':cur_y (cur_y msg))
+    (cl:cons ':cur_z (cur_z msg))
+    (cl:cons ':cur_roll (cur_roll msg))
+    (cl:cons ':cur_pitch (cur_pitch msg))
+    (cl:cons ':cur_yaw (cur_yaw msg))
+    (cl:cons ':cur_joint (cur_joint msg))
 ))
 (cl:defmethod roslisp-msg-protocol:service-request-type ((msg (cl:eql 'piper_cmd)))
   'piper_cmd-request)

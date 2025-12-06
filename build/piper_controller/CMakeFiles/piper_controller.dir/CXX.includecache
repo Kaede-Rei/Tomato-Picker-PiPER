@@ -27,18 +27,6 @@ tf2_geometry_msgs/tf2_geometry_msgs.h
 -
 tf2/LinearMath/Matrix3x3.h
 -
-serial_driver/serial_driver.hpp
-/home/kaerei/ROS_Workspace/piper_controller/src/piper_controller/src/serial_driver/serial_driver.hpp
-
-/home/kaerei/ROS_Workspace/piper_controller/src/serial_driver/include/serial_driver/serial_driver.hpp
-ros/ros.h
--
-serial/serial.h
--
-linux/can.h
--
-net/if.h
--
 
 /home/kaerei/软件/piper_ros/devel/include/moveit/moveit_kinematics_base_export.h
 
@@ -3304,32 +3292,6 @@ geometry_msgs/Transform.h
 geometry_msgs/Twist.h
 -
 geometry_msgs/Wrench.h
--
-
-/opt/ros/noetic/include/serial/serial.h
-limits
--
-vector
--
-string
--
-cstring
--
-sstream
--
-exception
--
-stdexcept
--
-serial/v8stdint.h
--
-
-/opt/ros/noetic/include/serial/v8stdint.h
-stddef.h
--
-stdio.h
--
-stdint.h
 -
 
 /opt/ros/noetic/include/shape_msgs/Mesh.h

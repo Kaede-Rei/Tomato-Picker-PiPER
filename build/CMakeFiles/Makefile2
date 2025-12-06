@@ -57,6 +57,7 @@ all: gtest/all
 all: serial_driver/all
 all: piper_msgs_srvs/all
 all: piper_controller/all
+all: piper_service/all
 
 .PHONY : all
 
@@ -65,6 +66,7 @@ preinstall: gtest/preinstall
 preinstall: serial_driver/preinstall
 preinstall: piper_msgs_srvs/preinstall
 preinstall: piper_controller/preinstall
+preinstall: piper_service/preinstall
 
 .PHONY : preinstall
 
@@ -78,6 +80,7 @@ clean: gtest/clean
 clean: serial_driver/clean
 clean: piper_msgs_srvs/clean
 clean: piper_controller/clean
+clean: piper_service/clean
 
 .PHONY : clean
 
@@ -253,6 +256,24 @@ piper_msgs_srvs/clean: piper_msgs_srvs/CMakeFiles/piper_msgs_srvs_generate_messa
 piper_msgs_srvs/clean: piper_msgs_srvs/CMakeFiles/piper_msgs_srvs_genlisp.dir/clean
 
 .PHONY : piper_msgs_srvs/clean
+
+#=============================================================================
+# Directory level rules for directory piper_service
+
+# Recursive "all" directory target.
+piper_service/all: piper_service/CMakeFiles/piper_service.dir/all
+
+.PHONY : piper_service/all
+
+# Recursive "preinstall" directory target.
+piper_service/preinstall:
+
+.PHONY : piper_service/preinstall
+
+# Recursive "clean" directory target.
+piper_service/clean: piper_service/CMakeFiles/piper_service.dir/clean
+
+.PHONY : piper_service/clean
 
 #=============================================================================
 # Directory level rules for directory serial_driver
@@ -543,7 +564,7 @@ gtest/googletest/CMakeFiles/gtest.dir/clean:
 serial_driver/CMakeFiles/serial_driver.dir/all:
 	$(MAKE) -f serial_driver/CMakeFiles/serial_driver.dir/build.make serial_driver/CMakeFiles/serial_driver.dir/depend
 	$(MAKE) -f serial_driver/CMakeFiles/serial_driver.dir/build.make serial_driver/CMakeFiles/serial_driver.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/kaerei/ROS_Workspace/piper_controller/build/CMakeFiles --progress-num=18,19 "Built target serial_driver"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/kaerei/ROS_Workspace/piper_controller/build/CMakeFiles --progress-num=20,21 "Built target serial_driver"
 .PHONY : serial_driver/CMakeFiles/serial_driver.dir/all
 
 # Build rule for subdir invocation for target.
@@ -3330,6 +3351,34 @@ tf_generate_messages_cpp: piper_controller/CMakeFiles/tf_generate_messages_cpp.d
 piper_controller/CMakeFiles/tf_generate_messages_cpp.dir/clean:
 	$(MAKE) -f piper_controller/CMakeFiles/tf_generate_messages_cpp.dir/build.make piper_controller/CMakeFiles/tf_generate_messages_cpp.dir/clean
 .PHONY : piper_controller/CMakeFiles/tf_generate_messages_cpp.dir/clean
+
+#=============================================================================
+# Target rules for target piper_service/CMakeFiles/piper_service.dir
+
+# All Build rule for target.
+piper_service/CMakeFiles/piper_service.dir/all: serial_driver/CMakeFiles/serial_driver.dir/all
+piper_service/CMakeFiles/piper_service.dir/all: piper_controller/CMakeFiles/piper_controller.dir/all
+	$(MAKE) -f piper_service/CMakeFiles/piper_service.dir/build.make piper_service/CMakeFiles/piper_service.dir/depend
+	$(MAKE) -f piper_service/CMakeFiles/piper_service.dir/build.make piper_service/CMakeFiles/piper_service.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/kaerei/ROS_Workspace/piper_controller/build/CMakeFiles --progress-num=18,19 "Built target piper_service"
+.PHONY : piper_service/CMakeFiles/piper_service.dir/all
+
+# Build rule for subdir invocation for target.
+piper_service/CMakeFiles/piper_service.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/kaerei/ROS_Workspace/piper_controller/build/CMakeFiles 6
+	$(MAKE) -f CMakeFiles/Makefile2 piper_service/CMakeFiles/piper_service.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/kaerei/ROS_Workspace/piper_controller/build/CMakeFiles 0
+.PHONY : piper_service/CMakeFiles/piper_service.dir/rule
+
+# Convenience name for target.
+piper_service: piper_service/CMakeFiles/piper_service.dir/rule
+
+.PHONY : piper_service
+
+# clean rule for target.
+piper_service/CMakeFiles/piper_service.dir/clean:
+	$(MAKE) -f piper_service/CMakeFiles/piper_service.dir/build.make piper_service/CMakeFiles/piper_service.dir/clean
+.PHONY : piper_service/CMakeFiles/piper_service.dir/clean
 
 #=============================================================================
 # Special targets to cleanup operation of make.

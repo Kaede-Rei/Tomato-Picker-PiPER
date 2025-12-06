@@ -172,8 +172,8 @@ class piper_cmdRequest {
     return `
     # 请求部分
     string command      # 命令
-    string param1       # 参数1: 对于line/arc是起点坐标字符串
-    string param2       # 参数2: 对于line/arc是终点坐标字符串
+    string param1       # 参数1: 备用参数
+    string param2       # 参数2: 备用参数
     string param3       # 参数3: 备用参数
     float64 x           # 目标位置x坐标
     float64 y           # 目标位置y坐标
@@ -271,6 +271,13 @@ class piper_cmdResponse {
       // initObj === null is a special case for deserialization where we don't initialize fields
       this.success = null;
       this.message = null;
+      this.cur_x = null;
+      this.cur_y = null;
+      this.cur_z = null;
+      this.cur_roll = null;
+      this.cur_pitch = null;
+      this.cur_yaw = null;
+      this.cur_joint = null;
     }
     else {
       if (initObj.hasOwnProperty('success')) {
@@ -285,6 +292,48 @@ class piper_cmdResponse {
       else {
         this.message = '';
       }
+      if (initObj.hasOwnProperty('cur_x')) {
+        this.cur_x = initObj.cur_x
+      }
+      else {
+        this.cur_x = 0.0;
+      }
+      if (initObj.hasOwnProperty('cur_y')) {
+        this.cur_y = initObj.cur_y
+      }
+      else {
+        this.cur_y = 0.0;
+      }
+      if (initObj.hasOwnProperty('cur_z')) {
+        this.cur_z = initObj.cur_z
+      }
+      else {
+        this.cur_z = 0.0;
+      }
+      if (initObj.hasOwnProperty('cur_roll')) {
+        this.cur_roll = initObj.cur_roll
+      }
+      else {
+        this.cur_roll = 0.0;
+      }
+      if (initObj.hasOwnProperty('cur_pitch')) {
+        this.cur_pitch = initObj.cur_pitch
+      }
+      else {
+        this.cur_pitch = 0.0;
+      }
+      if (initObj.hasOwnProperty('cur_yaw')) {
+        this.cur_yaw = initObj.cur_yaw
+      }
+      else {
+        this.cur_yaw = 0.0;
+      }
+      if (initObj.hasOwnProperty('cur_joint')) {
+        this.cur_joint = initObj.cur_joint
+      }
+      else {
+        this.cur_joint = [];
+      }
     }
   }
 
@@ -294,6 +343,20 @@ class piper_cmdResponse {
     bufferOffset = _serializer.bool(obj.success, buffer, bufferOffset);
     // Serialize message field [message]
     bufferOffset = _serializer.string(obj.message, buffer, bufferOffset);
+    // Serialize message field [cur_x]
+    bufferOffset = _serializer.float64(obj.cur_x, buffer, bufferOffset);
+    // Serialize message field [cur_y]
+    bufferOffset = _serializer.float64(obj.cur_y, buffer, bufferOffset);
+    // Serialize message field [cur_z]
+    bufferOffset = _serializer.float64(obj.cur_z, buffer, bufferOffset);
+    // Serialize message field [cur_roll]
+    bufferOffset = _serializer.float64(obj.cur_roll, buffer, bufferOffset);
+    // Serialize message field [cur_pitch]
+    bufferOffset = _serializer.float64(obj.cur_pitch, buffer, bufferOffset);
+    // Serialize message field [cur_yaw]
+    bufferOffset = _serializer.float64(obj.cur_yaw, buffer, bufferOffset);
+    // Serialize message field [cur_joint]
+    bufferOffset = _arraySerializer.float64(obj.cur_joint, buffer, bufferOffset, null);
     return bufferOffset;
   }
 
@@ -305,13 +368,28 @@ class piper_cmdResponse {
     data.success = _deserializer.bool(buffer, bufferOffset);
     // Deserialize message field [message]
     data.message = _deserializer.string(buffer, bufferOffset);
+    // Deserialize message field [cur_x]
+    data.cur_x = _deserializer.float64(buffer, bufferOffset);
+    // Deserialize message field [cur_y]
+    data.cur_y = _deserializer.float64(buffer, bufferOffset);
+    // Deserialize message field [cur_z]
+    data.cur_z = _deserializer.float64(buffer, bufferOffset);
+    // Deserialize message field [cur_roll]
+    data.cur_roll = _deserializer.float64(buffer, bufferOffset);
+    // Deserialize message field [cur_pitch]
+    data.cur_pitch = _deserializer.float64(buffer, bufferOffset);
+    // Deserialize message field [cur_yaw]
+    data.cur_yaw = _deserializer.float64(buffer, bufferOffset);
+    // Deserialize message field [cur_joint]
+    data.cur_joint = _arrayDeserializer.float64(buffer, bufferOffset, null)
     return data;
   }
 
   static getMessageSize(object) {
     let length = 0;
     length += _getByteLength(object.message);
-    return length + 5;
+    length += 8 * object.cur_joint.length;
+    return length + 57;
   }
 
   static datatype() {
@@ -321,7 +399,7 @@ class piper_cmdResponse {
 
   static md5sum() {
     //Returns md5sum for a message object
-    return '937c9679a518e3a18d831e57125ea522';
+    return '7e1b53476df714dd5d04f5cf9fe8e844';
   }
 
   static messageDefinition() {
@@ -330,6 +408,13 @@ class piper_cmdResponse {
     # 响应部分
     bool success        # 执行是否成功
     string message      # 返回消息
+    float64 cur_x       # 当前x坐标
+    float64 cur_y       # 当前y坐标
+    float64 cur_z       # 当前z坐标
+    float64 cur_roll    # 当前roll角
+    float64 cur_pitch   # 当前pitch角
+    float64 cur_yaw     # 当前yaw角
+    float64[] cur_joint # 当前各关节位置数组 
     
     `;
   }
@@ -354,6 +439,55 @@ class piper_cmdResponse {
       resolved.message = ''
     }
 
+    if (msg.cur_x !== undefined) {
+      resolved.cur_x = msg.cur_x;
+    }
+    else {
+      resolved.cur_x = 0.0
+    }
+
+    if (msg.cur_y !== undefined) {
+      resolved.cur_y = msg.cur_y;
+    }
+    else {
+      resolved.cur_y = 0.0
+    }
+
+    if (msg.cur_z !== undefined) {
+      resolved.cur_z = msg.cur_z;
+    }
+    else {
+      resolved.cur_z = 0.0
+    }
+
+    if (msg.cur_roll !== undefined) {
+      resolved.cur_roll = msg.cur_roll;
+    }
+    else {
+      resolved.cur_roll = 0.0
+    }
+
+    if (msg.cur_pitch !== undefined) {
+      resolved.cur_pitch = msg.cur_pitch;
+    }
+    else {
+      resolved.cur_pitch = 0.0
+    }
+
+    if (msg.cur_yaw !== undefined) {
+      resolved.cur_yaw = msg.cur_yaw;
+    }
+    else {
+      resolved.cur_yaw = 0.0
+    }
+
+    if (msg.cur_joint !== undefined) {
+      resolved.cur_joint = msg.cur_joint;
+    }
+    else {
+      resolved.cur_joint = []
+    }
+
     return resolved;
     }
 };
@@ -361,6 +495,6 @@ class piper_cmdResponse {
 module.exports = {
   Request: piper_cmdRequest,
   Response: piper_cmdResponse,
-  md5sum() { return 'f532f95cf40949996985d51d8f969194'; },
+  md5sum() { return 'ab876838156246ec2905cd94b5756b0a'; },
   datatype() { return 'piper_msgs_srvs/piper_cmd'; }
 };

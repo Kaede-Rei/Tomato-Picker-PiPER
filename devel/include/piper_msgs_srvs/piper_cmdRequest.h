@@ -202,8 +202,8 @@ struct Definition< ::piper_msgs_srvs::piper_cmdRequest_<ContainerAllocator> >
   {
     return "# 请求部分\n"
 "string command      # 命令\n"
-"string param1       # 参数1: 对于line/arc是起点坐标字符串\n"
-"string param2       # 参数2: 对于line/arc是终点坐标字符串\n"
+"string param1       # 参数1: 备用参数\n"
+"string param2       # 参数2: 备用参数\n"
 "string param3       # 参数3: 备用参数\n"
 "float64 x           # 目标位置x坐标\n"
 "float64 y           # 目标位置y坐标\n"

@@ -23,4 +23,18 @@
           SUCCESS
           MESSAGE-VAL
           MESSAGE
+          CUR_X-VAL
+          CUR_X
+          CUR_Y-VAL
+          CUR_Y
+          CUR_Z-VAL
+          CUR_Z
+          CUR_ROLL-VAL
+          CUR_ROLL
+          CUR_PITCH-VAL
+          CUR_PITCH
+          CUR_YAW-VAL
+          CUR_YAW
+          CUR_JOINT-VAL
+          CUR_JOINT
 ))

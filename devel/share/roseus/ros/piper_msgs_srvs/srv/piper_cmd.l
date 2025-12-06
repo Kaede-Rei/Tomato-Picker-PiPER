@@ -156,17 +156,31 @@
 
 (defclass piper_msgs_srvs::piper_cmdResponse
   :super ros::object
-  :slots (_success _message ))
+  :slots (_success _message _cur_x _cur_y _cur_z _cur_roll _cur_pitch _cur_yaw _cur_joint ))
 
 (defmethod piper_msgs_srvs::piper_cmdResponse
   (:init
    (&key
     ((:success __success) nil)
     ((:message __message) "")
+    ((:cur_x __cur_x) 0.0)
+    ((:cur_y __cur_y) 0.0)
+    ((:cur_z __cur_z) 0.0)
+    ((:cur_roll __cur_roll) 0.0)
+    ((:cur_pitch __cur_pitch) 0.0)
+    ((:cur_yaw __cur_yaw) 0.0)
+    ((:cur_joint __cur_joint) (make-array 0 :initial-element 0.0 :element-type :float))
     )
    (send-super :init)
    (setq _success __success)
    (setq _message (string __message))
+   (setq _cur_x (float __cur_x))
+   (setq _cur_y (float __cur_y))
+   (setq _cur_z (float __cur_z))
+   (setq _cur_roll (float __cur_roll))
+   (setq _cur_pitch (float __cur_pitch))
+   (setq _cur_yaw (float __cur_yaw))
+   (setq _cur_joint __cur_joint)
    self)
   (:success
    (&optional (__success :null))
@@ -174,6 +188,27 @@
   (:message
    (&optional __message)
    (if __message (setq _message __message)) _message)
+  (:cur_x
+   (&optional __cur_x)
+   (if __cur_x (setq _cur_x __cur_x)) _cur_x)
+  (:cur_y
+   (&optional __cur_y)
+   (if __cur_y (setq _cur_y __cur_y)) _cur_y)
+  (:cur_z
+   (&optional __cur_z)
+   (if __cur_z (setq _cur_z __cur_z)) _cur_z)
+  (:cur_roll
+   (&optional __cur_roll)
+   (if __cur_roll (setq _cur_roll __cur_roll)) _cur_roll)
+  (:cur_pitch
+   (&optional __cur_pitch)
+   (if __cur_pitch (setq _cur_pitch __cur_pitch)) _cur_pitch)
+  (:cur_yaw
+   (&optional __cur_yaw)
+   (if __cur_yaw (setq _cur_yaw __cur_yaw)) _cur_yaw)
+  (:cur_joint
+   (&optional __cur_joint)
+   (if __cur_joint (setq _cur_joint __cur_joint)) _cur_joint)
   (:serialization-length
    ()
    (+
@@ -181,6 +216,20 @@
     1
     ;; string _message
     4 (length _message)
+    ;; float64 _cur_x
+    8
+    ;; float64 _cur_y
+    8
+    ;; float64 _cur_z
+    8
+    ;; float64 _cur_roll
+    8
+    ;; float64 _cur_pitch
+    8
+    ;; float64 _cur_yaw
+    8
+    ;; float64[] _cur_joint
+    (* 8    (length _cur_joint)) 4
     ))
   (:serialize
    (&optional strm)
@@ -190,6 +239,23 @@
        (if _success (write-byte -1 s) (write-byte 0 s))
      ;; string _message
        (write-long (length _message) s) (princ _message s)
+     ;; float64 _cur_x
+       (sys::poke _cur_x (send s :buffer) (send s :count) :double) (incf (stream-count s) 8)
+     ;; float64 _cur_y
+       (sys::poke _cur_y (send s :buffer) (send s :count) :double) (incf (stream-count s) 8)
+     ;; float64 _cur_z
+       (sys::poke _cur_z (send s :buffer) (send s :count) :double) (incf (stream-count s) 8)
+     ;; float64 _cur_roll
+       (sys::poke _cur_roll (send s :buffer) (send s :count) :double) (incf (stream-count s) 8)
+     ;; float64 _cur_pitch
+       (sys::poke _cur_pitch (send s :buffer) (send s :count) :double) (incf (stream-count s) 8)
+     ;; float64 _cur_yaw
+       (sys::poke _cur_yaw (send s :buffer) (send s :count) :double) (incf (stream-count s) 8)
+     ;; float64[] _cur_joint
+     (write-long (length _cur_joint) s)
+     (dotimes (i (length _cur_joint))
+       (sys::poke (elt _cur_joint i) (send s :buffer) (send s :count) :double) (incf (stream-count s) 8)
+       )
      ;;
      (if (null strm) (get-output-stream-string s))))
   (:deserialize
@@ -198,6 +264,25 @@
      (setq _success (not (= 0 (sys::peek buf ptr- :char)))) (incf ptr- 1)
    ;; string _message
      (let (n) (setq n (sys::peek buf ptr- :integer)) (incf ptr- 4) (setq _message (subseq buf ptr- (+ ptr- n))) (incf ptr- n))
+   ;; float64 _cur_x
+     (setq _cur_x (sys::peek buf ptr- :double)) (incf ptr- 8)
+   ;; float64 _cur_y
+     (setq _cur_y (sys::peek buf ptr- :double)) (incf ptr- 8)
+   ;; float64 _cur_z
+     (setq _cur_z (sys::peek buf ptr- :double)) (incf ptr- 8)
+   ;; float64 _cur_roll
+     (setq _cur_roll (sys::peek buf ptr- :double)) (incf ptr- 8)
+   ;; float64 _cur_pitch
+     (setq _cur_pitch (sys::peek buf ptr- :double)) (incf ptr- 8)
+   ;; float64 _cur_yaw
+     (setq _cur_yaw (sys::peek buf ptr- :double)) (incf ptr- 8)
+   ;; float64[] _cur_joint
+   (let (n)
+     (setq n (sys::peek buf ptr- :integer)) (incf ptr- 4)
+     (setq _cur_joint (instantiate float-vector n))
+     (dotimes (i n)
+     (setf (elt _cur_joint i) (sys::peek buf ptr- :double)) (incf ptr- 8)
+     ))
    ;;
    self)
   )
@@ -206,7 +291,7 @@
   :super ros::object
   :slots ())
 
-(setf (get piper_msgs_srvs::piper_cmd :md5sum-) "f532f95cf40949996985d51d8f969194")
+(setf (get piper_msgs_srvs::piper_cmd :md5sum-) "ab876838156246ec2905cd94b5756b0a")
 (setf (get piper_msgs_srvs::piper_cmd :datatype-) "piper_msgs_srvs/piper_cmd")
 (setf (get piper_msgs_srvs::piper_cmd :request) piper_msgs_srvs::piper_cmdRequest)
 (setf (get piper_msgs_srvs::piper_cmd :response) piper_msgs_srvs::piper_cmdResponse)
@@ -214,13 +299,13 @@
 (defmethod piper_msgs_srvs::piper_cmdRequest
   (:response () (instance piper_msgs_srvs::piper_cmdResponse :init)))
 
-(setf (get piper_msgs_srvs::piper_cmdRequest :md5sum-) "f532f95cf40949996985d51d8f969194")
+(setf (get piper_msgs_srvs::piper_cmdRequest :md5sum-) "ab876838156246ec2905cd94b5756b0a")
 (setf (get piper_msgs_srvs::piper_cmdRequest :datatype-) "piper_msgs_srvs/piper_cmdRequest")
 (setf (get piper_msgs_srvs::piper_cmdRequest :definition-)
       "# 请求部分
 string command      # 命令
-string param1       # 参数1: 对于line/arc是起点坐标字符串
-string param2       # 参数2: 对于line/arc是终点坐标字符串
+string param1       # 参数1: 备用参数
+string param2       # 参数2: 备用参数
 string param3       # 参数3: 备用参数
 float64 x           # 目标位置x坐标
 float64 y           # 目标位置y坐标
@@ -232,15 +317,22 @@ float64 yaw         # 目标姿态yaw角
 # 响应部分
 bool success        # 执行是否成功
 string message      # 返回消息
+float64 cur_x       # 当前x坐标
+float64 cur_y       # 当前y坐标
+float64 cur_z       # 当前z坐标
+float64 cur_roll    # 当前roll角
+float64 cur_pitch   # 当前pitch角
+float64 cur_yaw     # 当前yaw角
+float64[] cur_joint # 当前各关节位置数组 
 ")
 
-(setf (get piper_msgs_srvs::piper_cmdResponse :md5sum-) "f532f95cf40949996985d51d8f969194")
+(setf (get piper_msgs_srvs::piper_cmdResponse :md5sum-) "ab876838156246ec2905cd94b5756b0a")
 (setf (get piper_msgs_srvs::piper_cmdResponse :datatype-) "piper_msgs_srvs/piper_cmdResponse")
 (setf (get piper_msgs_srvs::piper_cmdResponse :definition-)
       "# 请求部分
 string command      # 命令
-string param1       # 参数1: 对于line/arc是起点坐标字符串
-string param2       # 参数2: 对于line/arc是终点坐标字符串
+string param1       # 参数1: 备用参数
+string param2       # 参数2: 备用参数
 string param3       # 参数3: 备用参数
 float64 x           # 目标位置x坐标
 float64 y           # 目标位置y坐标
@@ -252,10 +344,17 @@ float64 yaw         # 目标姿态yaw角
 # 响应部分
 bool success        # 执行是否成功
 string message      # 返回消息
+float64 cur_x       # 当前x坐标
+float64 cur_y       # 当前y坐标
+float64 cur_z       # 当前z坐标
+float64 cur_roll    # 当前roll角
+float64 cur_pitch   # 当前pitch角
+float64 cur_yaw     # 当前yaw角
+float64[] cur_joint # 当前各关节位置数组 
 ")
 
 
 
-(provide :piper_msgs_srvs/piper_cmd "f532f95cf40949996985d51d8f969194")
+(provide :piper_msgs_srvs/piper_cmd "ab876838156246ec2905cd94b5756b0a")
 
 

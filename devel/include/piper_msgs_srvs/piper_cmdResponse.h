@@ -25,11 +25,25 @@ struct piper_cmdResponse_
 
   piper_cmdResponse_()
     : success(false)
-    , message()  {
+    , message()
+    , cur_x(0.0)
+    , cur_y(0.0)
+    , cur_z(0.0)
+    , cur_roll(0.0)
+    , cur_pitch(0.0)
+    , cur_yaw(0.0)
+    , cur_joint()  {
     }
   piper_cmdResponse_(const ContainerAllocator& _alloc)
     : success(false)
-    , message(_alloc)  {
+    , message(_alloc)
+    , cur_x(0.0)
+    , cur_y(0.0)
+    , cur_z(0.0)
+    , cur_roll(0.0)
+    , cur_pitch(0.0)
+    , cur_yaw(0.0)
+    , cur_joint(_alloc)  {
   (void)_alloc;
     }
 
@@ -40,6 +54,27 @@ struct piper_cmdResponse_
 
    typedef std::basic_string<char, std::char_traits<char>, typename std::allocator_traits<ContainerAllocator>::template rebind_alloc<char>> _message_type;
   _message_type message;
+
+   typedef double _cur_x_type;
+  _cur_x_type cur_x;
+
+   typedef double _cur_y_type;
+  _cur_y_type cur_y;
+
+   typedef double _cur_z_type;
+  _cur_z_type cur_z;
+
+   typedef double _cur_roll_type;
+  _cur_roll_type cur_roll;
+
+   typedef double _cur_pitch_type;
+  _cur_pitch_type cur_pitch;
+
+   typedef double _cur_yaw_type;
+  _cur_yaw_type cur_yaw;
+
+   typedef std::vector<double, typename std::allocator_traits<ContainerAllocator>::template rebind_alloc<double>> _cur_joint_type;
+  _cur_joint_type cur_joint;
 
 
 
@@ -71,7 +106,14 @@ template<typename ContainerAllocator1, typename ContainerAllocator2>
 bool operator==(const ::piper_msgs_srvs::piper_cmdResponse_<ContainerAllocator1> & lhs, const ::piper_msgs_srvs::piper_cmdResponse_<ContainerAllocator2> & rhs)
 {
   return lhs.success == rhs.success &&
-    lhs.message == rhs.message;
+    lhs.message == rhs.message &&
+    lhs.cur_x == rhs.cur_x &&
+    lhs.cur_y == rhs.cur_y &&
+    lhs.cur_z == rhs.cur_z &&
+    lhs.cur_roll == rhs.cur_roll &&
+    lhs.cur_pitch == rhs.cur_pitch &&
+    lhs.cur_yaw == rhs.cur_yaw &&
+    lhs.cur_joint == rhs.cur_joint;
 }
 
 template<typename ContainerAllocator1, typename ContainerAllocator2>
@@ -128,12 +170,12 @@ struct MD5Sum< ::piper_msgs_srvs::piper_cmdResponse_<ContainerAllocator> >
 {
   static const char* value()
   {
-    return "937c9679a518e3a18d831e57125ea522";
+    return "7e1b53476df714dd5d04f5cf9fe8e844";
   }
 
   static const char* value(const ::piper_msgs_srvs::piper_cmdResponse_<ContainerAllocator>&) { return value(); }
-  static const uint64_t static_value1 = 0x937c9679a518e3a1ULL;
-  static const uint64_t static_value2 = 0x8d831e57125ea522ULL;
+  static const uint64_t static_value1 = 0x7e1b53476df714ddULL;
+  static const uint64_t static_value2 = 0x5d04f5cf9fe8e844ULL;
 };
 
 template<class ContainerAllocator>
@@ -155,6 +197,13 @@ struct Definition< ::piper_msgs_srvs::piper_cmdResponse_<ContainerAllocator> >
     return "# 响应部分\n"
 "bool success        # 执行是否成功\n"
 "string message      # 返回消息\n"
+"float64 cur_x       # 当前x坐标\n"
+"float64 cur_y       # 当前y坐标\n"
+"float64 cur_z       # 当前z坐标\n"
+"float64 cur_roll    # 当前roll角\n"
+"float64 cur_pitch   # 当前pitch角\n"
+"float64 cur_yaw     # 当前yaw角\n"
+"float64[] cur_joint # 当前各关节位置数组 \n"
 ;
   }
 
@@ -175,6 +224,13 @@ namespace serialization
     {
       stream.next(m.success);
       stream.next(m.message);
+      stream.next(m.cur_x);
+      stream.next(m.cur_y);
+      stream.next(m.cur_z);
+      stream.next(m.cur_roll);
+      stream.next(m.cur_pitch);
+      stream.next(m.cur_yaw);
+      stream.next(m.cur_joint);
     }
 
     ROS_DECLARE_ALLINONE_SERIALIZER
@@ -197,6 +253,24 @@ struct Printer< ::piper_msgs_srvs::piper_cmdResponse_<ContainerAllocator> >
     Printer<uint8_t>::stream(s, indent + "  ", v.success);
     s << indent << "message: ";
     Printer<std::basic_string<char, std::char_traits<char>, typename std::allocator_traits<ContainerAllocator>::template rebind_alloc<char>>>::stream(s, indent + "  ", v.message);
+    s << indent << "cur_x: ";
+    Printer<double>::stream(s, indent + "  ", v.cur_x);
+    s << indent << "cur_y: ";
+    Printer<double>::stream(s, indent + "  ", v.cur_y);
+    s << indent << "cur_z: ";
+    Printer<double>::stream(s, indent + "  ", v.cur_z);
+    s << indent << "cur_roll: ";
+    Printer<double>::stream(s, indent + "  ", v.cur_roll);
+    s << indent << "cur_pitch: ";
+    Printer<double>::stream(s, indent + "  ", v.cur_pitch);
+    s << indent << "cur_yaw: ";
+    Printer<double>::stream(s, indent + "  ", v.cur_yaw);
+    s << indent << "cur_joint[]" << std::endl;
+    for (size_t i = 0; i < v.cur_joint.size(); ++i)
+    {
+      s << indent << "  cur_joint[" << i << "]: ";
+      Printer<double>::stream(s, indent + "  ", v.cur_joint[i]);
+    }
   }
 };
 

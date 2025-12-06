@@ -40,7 +40,7 @@ template<>
 struct MD5Sum< ::piper_msgs_srvs::piper_cmd > {
   static const char* value()
   {
-    return "f532f95cf40949996985d51d8f969194";
+    return "ab876838156246ec2905cd94b5756b0a";
   }
 
   static const char* value(const ::piper_msgs_srvs::piper_cmd&) { return value(); }

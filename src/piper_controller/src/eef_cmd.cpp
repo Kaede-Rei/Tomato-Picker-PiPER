@@ -7,7 +7,10 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 
-#include "serial_driver/serial_driver.hpp"
+/* ========================= 宏 定 义 ========================= */
+
+#define SEARCH_STEP 5.0    // 搜索步长(度)
+#define SEARCH_RADIUS 45.0 // 搜索半径(度)
 
 namespace piper
 {
@@ -86,14 +89,14 @@ namespace piper
      * @param step 搜索步长(单位: 度)
      * @param radius 搜索半径(单位: 度)
      * @return 是否找到可达位姿，找到则返回true，geometry_msgs::Pose类型的target_pose将被更新为可达位姿
-     * @note 当roll和pitch均为0时，进行前馈计算
+     * @note 当RPY均为0时，进行前馈计算
      */
     bool EefPoseCmd::searchReachablePose(geometry_msgs::Pose& target_pose, double step, double radius)
     {
         // 先判断一次目标位姿是否可达
         if(isIkValid(target_pose)) return true;
 
-        // 先判断roll和pitch是否均为0，是则进行前馈计算
+        // 先判断RPY是否均为0，是则进行前馈计算
         bool need_feedforward = (
             std::abs(target_pose.orientation.w - 1.0) < 1e-8 &&
             std::abs(target_pose.orientation.x) < 1e-8 &&
@@ -245,9 +248,11 @@ namespace piper
      * @brief 移动到机械臂末端执行器目标位姿，参考坐标系为底座
      * @param target_pose 目标位姿
      * @param allow_tweak 是否允许微调(默认允许)
+     * @param allow_feedforward 是否启用前馈计算(默认启用)
      * @return 是否到达成功
+     * @note 前馈计算只在允许微调时可以启用
      */
-    bool EefPoseCmd::setGoalPoseBase(geometry_msgs::PoseStamped& target_pose, bool allow_tweak)
+    bool EefPoseCmd::setGoalPoseBase(geometry_msgs::PoseStamped& target_pose, bool allow_tweak, bool allow_feedforward)
     {
         target_pose.header.frame_id = _plan_frame_;
         target_pose.header.stamp = ros::Time::now();
@@ -256,10 +261,19 @@ namespace piper
         _arm_.setStartStateToCurrentState();
         _current_state_ = _arm_.getCurrentState();
 
+        // 检查是否允许微调
         if(allow_tweak){
+            // 检查是否启用前馈计算
+            if(allow_feedforward){
+                target_pose.pose.orientation.w = 1.0;
+                target_pose.pose.orientation.x = 0.0;
+                target_pose.pose.orientation.y = 0.0;
+                target_pose.pose.orientation.z = 0.0;
+            }
+
             ROS_INFO("搜索可达目标位姿中...");
-            double step = 5.0;   // 步长(度)
-            double radius = 45.0; // 半径(度)
+            double step = SEARCH_STEP;   // 步长(度)
+            double radius = SEARCH_RADIUS; // 半径(度)
 
             geometry_msgs::Pose pose_candidate = target_pose.pose;
             if(!searchReachablePose(pose_candidate, step, radius)) return false;
@@ -298,18 +312,20 @@ namespace piper
      * @brief 移动到机械臂末端执行器目标位姿，参考坐标系为末端
      * @param target_pose 目标位姿
      * @param allow_tweak 是否允许微调(默认允许)
+     * @param allow_feedforward 是否启用前馈计算(默认启用)
      * @return 是否到达成功
+     * @note 前馈计算只在允许微调时可以启用
      * @note 用于前伸与后缩时，设d为伸缩距离，则目标位姿(x,y,z,roll,pitch,yaw) = (0,0,d,0,0,0)
-     * @note 用于旋转时，设angle为旋转角度，则目标位姿(x,y,z,roll,pitch,yaw) = (0,0,0,0,0,angle)
+     * @note 位置变换随简单的加分，但姿态变换是四元数插值，不可直接修改yaw值来实现旋转
      */
-    bool EefPoseCmd::setGoalPoseEef(geometry_msgs::PoseStamped& target_pose, bool allow_tweak)
+    bool EefPoseCmd::setGoalPoseEef(geometry_msgs::PoseStamped& target_pose, bool allow_tweak, bool allow_feedforward)
     {
         // 把目标位姿从eef坐标系转换到base坐标系
         geometry_msgs::PoseStamped target_pose_base;
         eefTfBase(target_pose, target_pose_base);
 
         // 调用基坐标系下的移动函数
-        return setGoalPoseBase(target_pose_base, allow_tweak);
+        return setGoalPoseBase(target_pose_base, allow_tweak, allow_feedforward);
     }
 
     /**
@@ -328,26 +344,34 @@ namespace piper
         target_pose_eef.pose.orientation.y = 0.0;
         target_pose_eef.pose.orientation.z = 0.0;
 
-        return setGoalPoseEef(target_pose_eef, true);
+        return setGoalPoseEef(target_pose_eef);
     }
 
     /**
      * @brief 机械臂末端执行器旋转
-     * @param angle 旋转角度，单位为弧度，正值为逆时针旋转，负值为顺时针旋转
+     * @param angle 旋转角度，单位为度，正值为逆时针旋转，负值为顺时针旋转
      * @return 是否到达成功
      */
     bool EefPoseCmd::eefRotate(double angle)
     {
-        geometry_msgs::PoseStamped target_pose_eef;
-        target_pose_eef.pose.position.x = 0.0;
-        target_pose_eef.pose.position.y = 0.0;
-        target_pose_eef.pose.position.z = 0.0;
+        angle = angle * M_PI / 180.0; // 转换为弧度
 
-        tf2::Quaternion q;
-        q.setRPY(0.0, 0.0, angle);
-        target_pose_eef.pose.orientation = tf2::toMsg(q);
+        geometry_msgs::Pose current = getCurrentEefPose();
+        
+        tf2::Quaternion q_current;
+        tf2::fromMsg(current.orientation, q_current);
+        
+        tf2::Quaternion q_delta;
+        q_delta.setRPY(0, 0, angle);
 
-        return setGoalPoseEef(target_pose_eef, true);
+        tf2::Quaternion q_new = q_current * q_delta;
+        
+        geometry_msgs::PoseStamped target;
+        target.header.frame_id = _plan_frame_;
+        target.pose = current;
+        target.pose.orientation = tf2::toMsg(q_new);
+        
+        return setGoalPoseBase(target, false, false);
     }
 
     /**
@@ -453,13 +477,36 @@ namespace piper
 
             geometry_msgs::PoseStamped target_pose;
             target_pose.pose = task.pose;
-            success = _eef_cmd_.setGoalPoseBase(target_pose, true);
+            success = _eef_cmd_.setGoalPoseBase(target_pose);
 
             if(!success) ROS_WARN("任务 [%zu] 失败。", task_index);
 
+            // 执行任务动作
             if(task.action == TargetAction_e::PICK && success){
+                
                 // TODO: 执行采摘动作
             }
+            else if(task.action == TargetAction_e::STRETCH && success){
+                
+                // TODO: 根据视觉反馈调整伸缩参数
+                if(task.param1 == 0.0){
+
+                }
+
+                success = _eef_cmd_.eefStretch(task.param1);
+                if(!success) ROS_WARN("任务 [%zu] 伸缩动作失败。", task_index);
+            }
+            else if(task.action == TargetAction_e::ROTATE && success){
+                
+                // TODO: 根据视觉反馈调整旋转参数
+                if(task.param1 == 0.0){
+
+                }
+
+                success = _eef_cmd_.eefRotate(task.param1);
+                if(!success) ROS_WARN("任务 [%zu] 旋转动作失败。", task_index);
+            }
+
             if(task.wait_time > 0.0) ros::Duration(task.wait_time).sleep();
             ++task_index;
         }
@@ -467,62 +514,5 @@ namespace piper
         ROS_INFO("所有任务执行完毕。");
         clear();
     }
-}
 
-int main(int argc, char** argv)
-{
-    setlocale(LC_ALL, "");
-
-    ros::init(argc, argv, "d_eef_pos_cmd_test");
-    ros::NodeHandle nh;
-
-    ros::AsyncSpinner spinner(2);
-    spinner.start();
-
-    piper::EefPoseCmd eef_cmd(nh, "arm");
-    piper::TaskGroupPlanner task_planner(eef_cmd);
-
-    double x, y, z, roll, pitch, yaw;
-    if(sscanf(argv[1], "%lf,%lf,%lf,%lf,%lf,%lf", &x, &y, &z, &roll, &pitch, &yaw) == 6){
-
-        geometry_msgs::PoseStamped target_pose;
-        target_pose.pose.position.x = x;
-        target_pose.pose.position.y = y;
-        target_pose.pose.position.z = z;
-
-        tf2::Quaternion q;
-        q.setRPY(roll * M_PI / 180.0, pitch * M_PI / 180.0, yaw * M_PI / 180.0);
-        target_pose.pose.orientation = tf2::toMsg(q);
-
-        piper::TaskTarget_t task[3];
-        
-        task[0].pose = target_pose.pose;
-        task[0].wait_time = 1.0;
-        task[0].action = piper::TargetAction_e::NONE;
-        
-        target_pose.pose.position.z += 0.1;
-        task[1].pose = target_pose.pose;
-        task[1].wait_time = 2.0;
-        task[1].action = piper::TargetAction_e::NONE;
-
-        target_pose.pose.position.x += 0.1;
-        task[2].pose = target_pose.pose;
-        task[2].wait_time = 3.0;
-        task[2].action = piper::TargetAction_e::NONE;
-
-        task_planner.add(task[0]);
-        task_planner.add(task[2]);
-        task_planner.add(task[1]);
-
-        task_planner.executeAll();
-    }
-    else{
-        ROS_ERROR("参数错误！请输入格式：x,y,z,roll,pitch,yaw");
-        eef_cmd.resetToZero();
-    }
-
-    auto test_serial = std::make_unique<STM32Serial>(nh, "/dev/ttyUSB0", 115200);
-    auto test_can = CANSerial(nh, "can0");
-
-    return 0;
 }

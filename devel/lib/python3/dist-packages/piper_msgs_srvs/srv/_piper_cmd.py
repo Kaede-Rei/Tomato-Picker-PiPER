@@ -13,8 +13,8 @@ class piper_cmdRequest(genpy.Message):
   _has_header = False  # flag to mark the presence of a Header object
   _full_text = """# 请求部分
 string command      # 命令
-string param1       # 参数1: 对于line/arc是起点坐标字符串
-string param2       # 参数2: 对于line/arc是终点坐标字符串
+string param1       # 参数1: 备用参数
+string param2       # 参数2: 备用参数
 string param3       # 参数3: 备用参数
 float64 x           # 目标位置x坐标
 float64 y           # 目标位置y坐标
@@ -280,15 +280,22 @@ import struct
 
 
 class piper_cmdResponse(genpy.Message):
-  _md5sum = "937c9679a518e3a18d831e57125ea522"
+  _md5sum = "7e1b53476df714dd5d04f5cf9fe8e844"
   _type = "piper_msgs_srvs/piper_cmdResponse"
   _has_header = False  # flag to mark the presence of a Header object
   _full_text = """# 响应部分
 bool success        # 执行是否成功
 string message      # 返回消息
+float64 cur_x       # 当前x坐标
+float64 cur_y       # 当前y坐标
+float64 cur_z       # 当前z坐标
+float64 cur_roll    # 当前roll角
+float64 cur_pitch   # 当前pitch角
+float64 cur_yaw     # 当前yaw角
+float64[] cur_joint # 当前各关节位置数组 
 """
-  __slots__ = ['success','message']
-  _slot_types = ['bool','string']
+  __slots__ = ['success','message','cur_x','cur_y','cur_z','cur_roll','cur_pitch','cur_yaw','cur_joint']
+  _slot_types = ['bool','string','float64','float64','float64','float64','float64','float64','float64[]']
 
   def __init__(self, *args, **kwds):
     """
@@ -298,7 +305,7 @@ string message      # 返回消息
     changes.  You cannot mix in-order arguments and keyword arguments.
 
     The available fields are:
-       success,message
+       success,message,cur_x,cur_y,cur_z,cur_roll,cur_pitch,cur_yaw,cur_joint
 
     :param args: complete set of field values, in .msg order
     :param kwds: use keyword arguments corresponding to message field names
@@ -311,9 +318,30 @@ string message      # 返回消息
         self.success = False
       if self.message is None:
         self.message = ''
+      if self.cur_x is None:
+        self.cur_x = 0.
+      if self.cur_y is None:
+        self.cur_y = 0.
+      if self.cur_z is None:
+        self.cur_z = 0.
+      if self.cur_roll is None:
+        self.cur_roll = 0.
+      if self.cur_pitch is None:
+        self.cur_pitch = 0.
+      if self.cur_yaw is None:
+        self.cur_yaw = 0.
+      if self.cur_joint is None:
+        self.cur_joint = []
     else:
       self.success = False
       self.message = ''
+      self.cur_x = 0.
+      self.cur_y = 0.
+      self.cur_z = 0.
+      self.cur_roll = 0.
+      self.cur_pitch = 0.
+      self.cur_yaw = 0.
+      self.cur_joint = []
 
   def _get_types(self):
     """
@@ -335,6 +363,12 @@ string message      # 返回消息
         _x = _x.encode('utf-8')
         length = len(_x)
       buff.write(struct.Struct('<I%ss'%length).pack(length, _x))
+      _x = self
+      buff.write(_get_struct_6d().pack(_x.cur_x, _x.cur_y, _x.cur_z, _x.cur_roll, _x.cur_pitch, _x.cur_yaw))
+      length = len(self.cur_joint)
+      buff.write(_struct_I.pack(length))
+      pattern = '<%sd'%length
+      buff.write(struct.Struct(pattern).pack(*self.cur_joint))
     except struct.error as se: self._check_types(struct.error("%s: '%s' when writing '%s'" % (type(se), str(se), str(locals().get('_x', self)))))
     except TypeError as te: self._check_types(ValueError("%s: '%s' when writing '%s'" % (type(te), str(te), str(locals().get('_x', self)))))
 
@@ -360,6 +394,18 @@ string message      # 返回消息
         self.message = str[start:end].decode('utf-8', 'rosmsg')
       else:
         self.message = str[start:end]
+      _x = self
+      start = end
+      end += 48
+      (_x.cur_x, _x.cur_y, _x.cur_z, _x.cur_roll, _x.cur_pitch, _x.cur_yaw,) = _get_struct_6d().unpack(str[start:end])
+      start = end
+      end += 4
+      (length,) = _struct_I.unpack(str[start:end])
+      pattern = '<%sd'%length
+      start = end
+      s = struct.Struct(pattern)
+      end += s.size
+      self.cur_joint = s.unpack(str[start:end])
       return self
     except struct.error as e:
       raise genpy.DeserializationError(e)  # most likely buffer underfill
@@ -380,6 +426,12 @@ string message      # 返回消息
         _x = _x.encode('utf-8')
         length = len(_x)
       buff.write(struct.Struct('<I%ss'%length).pack(length, _x))
+      _x = self
+      buff.write(_get_struct_6d().pack(_x.cur_x, _x.cur_y, _x.cur_z, _x.cur_roll, _x.cur_pitch, _x.cur_yaw))
+      length = len(self.cur_joint)
+      buff.write(_struct_I.pack(length))
+      pattern = '<%sd'%length
+      buff.write(self.cur_joint.tostring())
     except struct.error as se: self._check_types(struct.error("%s: '%s' when writing '%s'" % (type(se), str(se), str(locals().get('_x', self)))))
     except TypeError as te: self._check_types(ValueError("%s: '%s' when writing '%s'" % (type(te), str(te), str(locals().get('_x', self)))))
 
@@ -406,6 +458,18 @@ string message      # 返回消息
         self.message = str[start:end].decode('utf-8', 'rosmsg')
       else:
         self.message = str[start:end]
+      _x = self
+      start = end
+      end += 48
+      (_x.cur_x, _x.cur_y, _x.cur_z, _x.cur_roll, _x.cur_pitch, _x.cur_yaw,) = _get_struct_6d().unpack(str[start:end])
+      start = end
+      end += 4
+      (length,) = _struct_I.unpack(str[start:end])
+      pattern = '<%sd'%length
+      start = end
+      s = struct.Struct(pattern)
+      end += s.size
+      self.cur_joint = numpy.frombuffer(str[start:end], dtype=numpy.float64, count=length)
       return self
     except struct.error as e:
       raise genpy.DeserializationError(e)  # most likely buffer underfill
@@ -414,6 +478,12 @@ _struct_I = genpy.struct_I
 def _get_struct_I():
     global _struct_I
     return _struct_I
+_struct_6d = None
+def _get_struct_6d():
+    global _struct_6d
+    if _struct_6d is None:
+        _struct_6d = struct.Struct("<6d")
+    return _struct_6d
 _struct_B = None
 def _get_struct_B():
     global _struct_B
@@ -422,6 +492,6 @@ def _get_struct_B():
     return _struct_B
 class piper_cmd(object):
   _type          = 'piper_msgs_srvs/piper_cmd'
-  _md5sum = 'f532f95cf40949996985d51d8f969194'
+  _md5sum = 'ab876838156246ec2905cd94b5756b0a'
   _request_class  = piper_cmdRequest
   _response_class = piper_cmdResponse

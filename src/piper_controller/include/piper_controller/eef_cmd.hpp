@@ -15,12 +15,18 @@ namespace piper
      * @details 定义了任务目标可能的动作类型，包括：
      *          - NONE: 无动作
      *          - PICK: 抓取动作
+     *          - STRETCH: 伸缩动作
+     *          - ROTATE: 旋转动作
      */
     enum class TargetAction_e{
         /// @brief 仅移动到目标位置，无其他动作(默认)
         NONE = 0,
         /// @brief 执行抓取动作
         PICK,
+        /// @brief 执行伸缩动作
+        STRETCH,
+        /// @brief 执行旋转动作
+        ROTATE
     };
 
     /**
@@ -29,6 +35,7 @@ namespace piper
      *          - pose: 目标位姿
      *          - wait_time: 到达目标后的等待时间
      *          - action: 目标动作类型
+     *          - param1: 预留参数1
      */
     typedef struct{
         /// @brief 目标位姿
@@ -37,6 +44,8 @@ namespace piper
         double wait_time;
         /// @brief 目标动作类型
         TargetAction_e action;
+        /// @brief 预留参数1
+        double param1 = 0.0;
     } TaskTarget_t;
 
     /**
@@ -99,8 +108,8 @@ namespace piper
         bool isIkValid(const geometry_msgs::Pose& target_pose);
 
         bool searchReachablePose(geometry_msgs::Pose& target_pose, double step, double radius);
-        bool setGoalPoseBase(geometry_msgs::PoseStamped& target_pose, bool allow_tweak = true);
-        bool setGoalPoseEef(geometry_msgs::PoseStamped& target_pose, bool allow_tweak = true);
+        bool setGoalPoseBase(geometry_msgs::PoseStamped& target_pose, bool allow_tweak = true, bool allow_feedforward = true);
+        bool setGoalPoseEef(geometry_msgs::PoseStamped& target_pose, bool allow_tweak = true, bool allow_feedforward = true);
         bool eefStretch(double distance);
         bool eefRotate(double angle);
         void resetToZero(void);

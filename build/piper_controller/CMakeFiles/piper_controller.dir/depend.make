@@ -3,7 +3,6 @@
 
 piper_controller/CMakeFiles/piper_controller.dir/src/eef_cmd.cpp.o: /home/kaerei/ROS_Workspace/piper_controller/src/piper_controller/include/piper_controller/eef_cmd.hpp
 piper_controller/CMakeFiles/piper_controller.dir/src/eef_cmd.cpp.o: /home/kaerei/ROS_Workspace/piper_controller/src/piper_controller/src/eef_cmd.cpp
-piper_controller/CMakeFiles/piper_controller.dir/src/eef_cmd.cpp.o: /home/kaerei/ROS_Workspace/piper_controller/src/serial_driver/include/serial_driver/serial_driver.hpp
 piper_controller/CMakeFiles/piper_controller.dir/src/eef_cmd.cpp.o: /home/kaerei/软件/piper_ros/devel/include/moveit/moveit_kinematics_base_export.h
 piper_controller/CMakeFiles/piper_controller.dir/src/eef_cmd.cpp.o: /home/kaerei/软件/piper_ros/devel/include/moveit/moveit_planning_scene_export.h
 piper_controller/CMakeFiles/piper_controller.dir/src/eef_cmd.cpp.o: /home/kaerei/软件/piper_ros/src/piper_moveit/moveit-1.1.11/moveit_core/collision_detection/include/moveit/collision_detection/collision_common.h
@@ -236,8 +235,6 @@ piper_controller/CMakeFiles/piper_controller.dir/src/eef_cmd.cpp.o: /opt/ros/noe
 piper_controller/CMakeFiles/piper_controller.dir/src/eef_cmd.cpp.o: /opt/ros/noetic/include/rosconsole/macros_generated.h
 piper_controller/CMakeFiles/piper_controller.dir/src/eef_cmd.cpp.o: /opt/ros/noetic/include/sensor_msgs/JointState.h
 piper_controller/CMakeFiles/piper_controller.dir/src/eef_cmd.cpp.o: /opt/ros/noetic/include/sensor_msgs/MultiDOFJointState.h
-piper_controller/CMakeFiles/piper_controller.dir/src/eef_cmd.cpp.o: /opt/ros/noetic/include/serial/serial.h
-piper_controller/CMakeFiles/piper_controller.dir/src/eef_cmd.cpp.o: /opt/ros/noetic/include/serial/v8stdint.h
 piper_controller/CMakeFiles/piper_controller.dir/src/eef_cmd.cpp.o: /opt/ros/noetic/include/shape_msgs/Mesh.h
 piper_controller/CMakeFiles/piper_controller.dir/src/eef_cmd.cpp.o: /opt/ros/noetic/include/shape_msgs/MeshTriangle.h
 piper_controller/CMakeFiles/piper_controller.dir/src/eef_cmd.cpp.o: /opt/ros/noetic/include/shape_msgs/Plane.h

@@ -114,9 +114,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES piper_controller
-#  CATKIN_DEPENDS actionlib geometry_msgs moveit_core moveit_ros_planning_interface roscpp rospy std_msgs std_srvs tf2_geometry_msgs tf2_ros
+  INCLUDE_DIRS include
+  LIBRARIES piper_controller
+  CATKIN_DEPENDS actionlib geometry_msgs moveit_core moveit_ros_planning_interface roscpp rospy std_msgs std_srvs tf2_geometry_msgs tf2_ros
 #  DEPENDS system_lib
 )
 
@@ -132,9 +132,9 @@ include_directories(
 )
 
 ## Declare a C++ library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/piper_controller.cpp
-# )
+add_library(${PROJECT_NAME}
+                src/eef_cmd.cpp
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -144,9 +144,9 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(piper_controller 
-                src/eef_cmd.cpp
-)
+# add_executable(piper_controller 
+#                 src/eef_cmd.cpp
+# )
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -161,7 +161,6 @@ add_executable(piper_controller
 ## Specify libraries to link a library or executable target against
 target_link_libraries(piper_controller 
   ${catkin_LIBRARIES}
-  serial_driver
 )
 
 #############
