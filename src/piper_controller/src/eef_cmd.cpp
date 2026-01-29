@@ -7,7 +7,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 
-/* ========================= 宏 定 义 ========================= */
+// ! ========================= 宏 定 义 ========================= ! //
 
 #define SEARCH_STEP 5.0    // 搜索步长(度)
 #define SEARCH_RADIUS 45.0 // 搜索半径(度)
@@ -15,15 +15,15 @@
 namespace piper
 {
 
-    /* ========================= 接 口 量 声 明 ========================= */
+    // ! ========================= 接 口 量 声 明 ========================= ! //
 
 
 
-    /* ========================= 私 有 量 / 函 数 声 明 ========================= */
+    // ! ========================= 私 有 量 / 函 数 声 明 ========================= ! //
 
 
 
-    /* ========================= 接 口 类 / 函 数 实 现 ========================= */
+    // ! ========================= 接 口 类 / 函 数 实 现 ========================= ! //
 
     /**
      * @brief 机械臂末端执行器位姿控制类构造函数
@@ -39,10 +39,11 @@ namespace piper
 
         // 获取基末端坐标系名称
         _eef_frame_ = _arm_.getEndEffectorLink();
+        ROS_INFO_STREAM("末端执行器坐标系为：" << _eef_frame_);
 
         // 允许重新规划、设置目标位姿容忍度、设置最大速度和加速度比例
         _arm_.allowReplanning(true);
-        _arm_.setGoalPositionTolerance(0.015);
+        _arm_.setGoalPositionTolerance(0.05);
         _arm_.setGoalOrientationTolerance(0.05);
         _arm_.setMaxVelocityScalingFactor(1.0);
         _arm_.setMaxAccelerationScalingFactor(1.0);
@@ -272,8 +273,8 @@ namespace piper
             }
 
             ROS_INFO("搜索可达目标位姿中...");
-            double step = SEARCH_STEP;   // 步长(度)
-            double radius = SEARCH_RADIUS; // 半径(度)
+            double step = SEARCH_STEP;      // 步长(度)
+            double radius = SEARCH_RADIUS;  // 半径(度)
 
             geometry_msgs::Pose pose_candidate = target_pose.pose;
             if(!searchReachablePose(pose_candidate, step, radius)) return false;

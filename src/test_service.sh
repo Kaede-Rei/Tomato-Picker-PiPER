@@ -108,11 +108,11 @@ param3: ''"
     
     # 4. 测试移动到目标位置（基座坐标系）
     echo -e "\n${YELLOW}4. 测试移动到目标位置（基座坐标系）${NC}"
-    echo "目标位置: x=0.15, y=0.2, z=0.3"
+    echo "目标位置: x=0.15, y=0.2, z=0.2"
     rosservice call $EEF_SERVICE "command: 'goal_base'
 x: 0.15
 y: 0.2
-z: 0.3
+z: 0.2
 roll: 0.0
 pitch: 0.0
 yaw: 0.0
