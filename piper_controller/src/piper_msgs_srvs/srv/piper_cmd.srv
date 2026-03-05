@@ -9,6 +9,7 @@ float64 z           # 目标位置z坐标
 float64 roll        # 目标姿态roll角
 float64 pitch       # 目标姿态pitch角
 float64 yaw         # 目标姿态yaw角
+float64 angle_eef   # 末端 
 ---
 # 响应部分
 bool success        # 执行是否成功
