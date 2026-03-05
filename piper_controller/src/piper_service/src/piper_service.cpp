@@ -1,4 +1,5 @@
 #include "piper_service/piper_service.hpp"
+#include "serial_driver/serial_driver.hpp"
 
 #include <tf2/LinearMath/Matrix3x3.h>
 
@@ -48,7 +49,7 @@ namespace piper {
      * @return true:服务调用成功 false:服务调用失败
      */
     bool Server::eefPoseCmdCallback(piper_msgs_srvs::piper_cmd::Request& req,
-        piper_msgs_srvs::piper_cmd::Response& res) {
+        piper_msgs_srvs::piper_cmd::Response& res, STM32Serial& serialer) {
         /// @brief 回到零点
         if(req.command == "zero") {
             _eef_controller_.resetToZero();
@@ -143,6 +144,24 @@ namespace piper {
 
             res.message = "获取各关节角度成功";
             res.success = true;
+        }
+
+        /// @brief 末端夹爪关闭
+        else if(req.command == "open"){
+            std::string data = "$OPEN#";
+            serialer.sendData(data);
+        }
+
+        /// @brief 末端夹爪关闭
+        else if(req.command == "close"){
+            std::string data = "$CLOSE#";
+            serialer.sendData(data);
+        }
+
+        /// @brief 末端夹爪角度控制
+        else if(req.command == "angle"){
+            std::string data = "$ANGLE:" + std::to_string(req.angle_eff) + "#";
+            serialer.sendData(data);
         }
 
         /// @brief 未知命令
