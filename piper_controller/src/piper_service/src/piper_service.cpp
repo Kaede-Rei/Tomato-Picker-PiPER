@@ -160,7 +160,7 @@ bool Server::eefPoseCmdCallback(piper_msgs_srvs::piper_cmd::Request& req,
 
     /// @brief 末端夹爪角度控制
     else if(req.command == "angle") {
-        std::string data = "$ANGLE:" + std::to_string(req.angle_eff) + "#";
+        std::string data = "$ANGLE:" + std::to_string(req.angle_eef) + "#";
         _stm32_serialer_.sendData(data);
     }
 
