@@ -16,717 +16,717 @@ namespace piper {
 
     // ! ========================= 私 有 量 / 函 数 声 明 ========================= ! //
 
-    static bool CheckLifterIsNeed(double z, STM32Serial& serialer);
+static bool CheckLifterIsNeed(double z, STM32Serial& serialer);
 
-    // ! ========================= 接 口 类 / 函 数 实 现 ========================= ! //
+// ! ========================= 接 口 类 / 函 数 实 现 ========================= ! //
 
-    /**
-     * @brief 构造函数
-     * @param nh ROS节点句柄
-     * @param plan_group 机械臂规划组名称
-     */
-    Server::Server(ros::NodeHandle& nh, const std::string& plan_group)
-        : _eef_controller_(nh, plan_group), _task_planner_(_eef_controller_),
-        _stm32_serialer_(nh, STM32_SERIAL_PORT, 115200) {
-        _srv_eef_cmd_ = nh.advertiseService("/piper_server/eef_cmd", &Server::eefPoseCmdCallback, this);
-        _srv_task_planner_ = nh.advertiseService("/piper_server/task_planner", &Server::taskGroupPlannerCallback, this);
+/**
+ * @brief 构造函数
+ * @param nh ROS节点句柄
+ * @param plan_group 机械臂规划组名称
+ */
+Server::Server(ros::NodeHandle& nh, const std::string& plan_group)
+    : _eef_controller_(nh, plan_group), _task_planner_(_eef_controller_),
+    _stm32_serialer_(nh, STM32_SERIAL_PORT, 115200) {
+    _srv_eef_cmd_ = nh.advertiseService("/piper_server/eef_cmd", &Server::eefPoseCmdCallback, this);
+    _srv_task_planner_ = nh.advertiseService("/piper_server/task_planner", &Server::taskGroupPlannerCallback, this);
 
+    _eef_controller_.resetToZero();
+}
+
+/**
+ * @brief 末端位姿控制服务回调函数
+ * @details 支持的服务有：
+ *          - zero：回到零点
+ *          - goal_base：设置末端在底座坐标系下的目标位姿
+ *          - goal_eef：设置末端在末端坐标系下的目标位姿
+ *          - stretch：末端伸缩
+ *          - rotate：末端旋转
+ *          - get_pose：获取末端相对底座坐标系的位姿
+ *          - get_joints：获取各关节角度
+ * @param req 服务请求
+ * @param res 服务响应
+ * @return true:服务调用成功 false:服务调用失败
+ */
+bool Server::eefPoseCmdCallback(piper_msgs_srvs::piper_cmd::Request& req,
+    piper_msgs_srvs::piper_cmd::Response& res) {
+    /// @brief 回到零点
+    if(req.command == "zero") {
         _eef_controller_.resetToZero();
+
+        res.success = true;
+        res.message = "回到零点成功";
     }
 
-    /**
-     * @brief 末端位姿控制服务回调函数
-     * @details 支持的服务有：
-     *          - zero：回到零点
-     *          - goal_base：设置末端在底座坐标系下的目标位姿
-     *          - goal_eef：设置末端在末端坐标系下的目标位姿
-     *          - stretch：末端伸缩
-     *          - rotate：末端旋转
-     *          - get_pose：获取末端相对底座坐标系的位姿
-     *          - get_joints：获取各关节角度
-     * @param req 服务请求
-     * @param res 服务响应
-     * @return true:服务调用成功 false:服务调用失败
-     */
-    bool Server::eefPoseCmdCallback(piper_msgs_srvs::piper_cmd::Request& req,
-        piper_msgs_srvs::piper_cmd::Response& res, STM32Serial& serialer) {
-        /// @brief 回到零点
-        if(req.command == "zero") {
-            _eef_controller_.resetToZero();
+    /// @brief 设置目标位姿
+    else if(req.command == "goal_base" || req.command == "goal_eef") {
+        geometry_msgs::PoseStamped target_pose;
+        tf2::Quaternion qtn;
 
-            res.success = true;
-            res.message = "回到零点成功";
-        }
+        qtn.setRPY(req.roll, req.pitch, req.yaw);
+        qtn.normalize();
 
-        /// @brief 设置目标位姿
-        else if(req.command == "goal_base" || req.command == "goal_eef") {
-            geometry_msgs::PoseStamped target_pose;
-            tf2::Quaternion qtn;
+        target_pose.pose.position.x = req.x;
+        target_pose.pose.position.y = req.y;
+        target_pose.pose.position.z = req.z;
+        target_pose.pose.orientation.x = qtn.x();
+        target_pose.pose.orientation.y = qtn.y();
+        target_pose.pose.orientation.z = qtn.z();
+        target_pose.pose.orientation.w = qtn.w();
 
-            qtn.setRPY(req.roll, req.pitch, req.yaw);
-            qtn.normalize();
-
-            target_pose.pose.position.x = req.x;
-            target_pose.pose.position.y = req.y;
-            target_pose.pose.position.z = req.z;
-            target_pose.pose.orientation.x = qtn.x();
-            target_pose.pose.orientation.y = qtn.y();
-            target_pose.pose.orientation.z = qtn.z();
-            target_pose.pose.orientation.w = qtn.w();
-
-            bool success = false;
-            if(req.command == "goal_base") {
-                bool lifter_success = piper::CheckLifterIsNeed(target_pose.pose.position.z, _stm32_serialer_);
-                if(!lifter_success) {
-                    res.success = false;
-                    res.message = "升降台升降失败";
-                    return true;
-                }
-
-                success = _eef_controller_.setGoalPoseBase(target_pose, true, true);
-            }
-            else if(req.command == "goal_eef") {
-                geometry_msgs::PoseStamped target_pose_base;
-                _eef_controller_.eefTfBase(target_pose, target_pose_base);
-
-                bool lifter_success = piper::CheckLifterIsNeed(target_pose_base.pose.position.z, _stm32_serialer_);
-                if(!lifter_success) {
-                    res.success = false;
-                    res.message = "升降台升降失败";
-                    return true;
-                }
-
-                success = _eef_controller_.setGoalPoseEef(target_pose, true, true);
+        bool success = false;
+        if(req.command == "goal_base") {
+            bool lifter_success = piper::CheckLifterIsNeed(target_pose.pose.position.z, _stm32_serialer_);
+            if(!lifter_success) {
+                res.success = false;
+                res.message = "升降台升降失败";
+                return true;
             }
 
-            res.success = success;
-            if(success) res.message = "设置目标位姿成功";
-            else res.message = "设置目标位姿失败";
+            success = _eef_controller_.setGoalPoseBase(target_pose, true, true);
         }
+        else if(req.command == "goal_eef") {
+            geometry_msgs::PoseStamped target_pose_base;
+            _eef_controller_.eefTfBase(target_pose, target_pose_base);
 
-        /// @brief 末端伸缩
-        else if(req.command == "stretch") {
-            bool success = _eef_controller_.eefStretch(std::stod(req.param1));
-
-            res.success = success;
-            if(success) res.message = "末端伸缩成功";
-            else res.message = "末端伸缩失败";
-        }
-
-        /// @brief 末端旋转
-        else if(req.command == "rotate") {
-            bool success = _eef_controller_.eefRotate(std::stod(req.param1));
-
-            res.success = success;
-            if(success) res.message = "末端旋转成功";
-            else res.message = "末端旋转失败";
-        }
-
-        /// @brief 获取末端相对底座坐标系的位姿
-        else if(req.command == "get_pose") {
-            geometry_msgs::Pose cur_pose = _eef_controller_.getCurrentEefPose();
-            tf2::Quaternion qtn(cur_pose.orientation.x,
-                cur_pose.orientation.y,
-                cur_pose.orientation.z,
-                cur_pose.orientation.w);
-            double roll, pitch, yaw;
-            tf2::Matrix3x3(qtn).getRPY(roll, pitch, yaw);
-
-            res.cur_x = cur_pose.position.x; res.cur_y = cur_pose.position.y; res.cur_z = cur_pose.position.z;
-            res.cur_roll = roll; res.cur_pitch = pitch; res.cur_yaw = yaw;
-            res.message = "获取末端位姿成功";
-            res.success = true;
-        }
-
-        /// @brief 获取各关节角度
-        else if(req.command == "get_joints") {
-            res.cur_joint = _eef_controller_.getCurrentJointPose();
-
-            res.message = "获取各关节角度成功";
-            res.success = true;
-        }
-
-        /// @brief 末端夹爪关闭
-        else if(req.command == "open"){
-            std::string data = "$OPEN#";
-            serialer.sendData(data);
-        }
-
-        /// @brief 末端夹爪关闭
-        else if(req.command == "close"){
-            std::string data = "$CLOSE#";
-            serialer.sendData(data);
-        }
-
-        /// @brief 末端夹爪角度控制
-        else if(req.command == "angle"){
-            std::string data = "$ANGLE:" + std::to_string(req.angle_eff) + "#";
-            serialer.sendData(data);
-        }
-
-        /// @brief 未知命令
-        else {
-            res.success = false;
-            res.message = "未知命令";
-        }
-
-        return true;
-    }
-
-    /**
-     * @brief 任务组规划服务回调函数
-     * @details 支持的服务有：
-     *          - add_task：添加任务
-     *          - clear_tasks：清除所有任务
-     *          - exe_all_tasks：执行所有任务
-     * @param req 服务请求
-     * @param res 服务响应
-     * @return true:服务调用成功 false:服务调用失败
-     */
-    bool Server::taskGroupPlannerCallback(piper_msgs_srvs::piper_cmd::Request& req,
-        piper_msgs_srvs::piper_cmd::Response& res) {
-        /// @brief 添加任务
-        if(req.command == "add_task") {
-            geometry_msgs::Pose target_pose;
-            tf2::Quaternion qtn;
-
-            qtn.setRPY(req.roll, req.pitch, req.yaw);
-            qtn.normalize();
-
-            target_pose.position.x = req.x;
-            target_pose.position.y = req.y;
-            target_pose.position.z = req.z;
-            target_pose.orientation.x = qtn.x();
-            target_pose.orientation.y = qtn.y();
-            target_pose.orientation.z = qtn.z();
-            target_pose.orientation.w = qtn.w();
-
-            TaskTarget_t target;
-            target.pose = target_pose;
-            target.wait_time = req.param1.empty() ? 0.0 : std::stod(req.param1);
-            if(req.param2 == "NONE") target.action = TargetAction_e::NONE;
-            else if(req.param2 == "PICK") target.action = TargetAction_e::PICK;
-            else if(req.param2 == "STRETCH") target.action = TargetAction_e::STRETCH;
-            else if(req.param2 == "ROTATE") target.action = TargetAction_e::ROTATE;
-            target.param1 = req.param3.empty() ? 0.0 : std::stod(req.param3);
-
-            _task_planner_.add(target);
-
-            res.success = true;
-            res.message = "添加任务成功";
-        }
-
-        /// @brief 清除所有任务
-        else if(req.command == "clear_tasks") {
-            _task_planner_.clear();
-
-            res.success = true;
-            res.message = "清除任务成功";
-        }
-
-        /// @brief 执行所有任务
-        else if(req.command == "exe_all_tasks") {
-            _task_planner_.executeAll();
-
-            res.success = true;
-            res.message = "开始执行所有任务";
-        }
-
-        return true;
-    }
-
-    /**
-     * @brief 构造函数
-     * @param nh ROS节点句柄
-     */
-    Client::Client(ros::NodeHandle& nh) : _nh_(nh) {
-        // 等待服务器可用
-        ROS_INFO("等待机械臂服务...");
-        ros::service::waitForService("piper_server/eef_cmd");
-
-        // 创建客户端
-        _client_eef_cmd_ = _nh_.serviceClient<piper_msgs_srvs::piper_cmd>("piper_server/eef_cmd");
-
-        ROS_INFO("机械臂服务已连接");
-    }
-
-    /**
-     * @brief 发送机械臂命令
-     * @param srv 服务对象
-     * @param req 服务请求
-     * @param res 服务响应
-     * @return true:服务调用成功 false:服务调用失败
-     */
-    bool Client::sendCmd(ros::ServiceClient& client,
-        const piper_msgs_srvs::piper_cmd::Request& req,
-        piper_msgs_srvs::piper_cmd::Response& res) {
-        piper_msgs_srvs::piper_cmd srv;
-        srv.request = req;
-
-        if(client.call(srv)) {
-            res = srv.response;
-
-            if(!res.success) {
-                ROS_ERROR("机械臂服务调用失败：%s", res.message.c_str());
+            bool lifter_success = piper::CheckLifterIsNeed(target_pose_base.pose.position.z, _stm32_serialer_);
+            if(!lifter_success) {
+                res.success = false;
+                res.message = "升降台升降失败";
+                return true;
             }
 
-            return true;
+            success = _eef_controller_.setGoalPoseEef(target_pose, true, true);
         }
-        else {
-            ROS_ERROR("无法请求机械臂服务");
-            return false;
-        }
+
+        res.success = success;
+        if(success) res.message = "设置目标位姿成功";
+        else res.message = "设置目标位姿失败";
     }
 
-    /**
-     * @brief 回到零点
-     * @return true:服务调用成功 false:服务调用失败
-     */
-    bool Client::zero(void) {
-        piper_msgs_srvs::piper_cmd::Request req;
-        piper_msgs_srvs::piper_cmd::Response res;
+    /// @brief 末端伸缩
+    else if(req.command == "stretch") {
+        bool success = _eef_controller_.eefStretch(std::stod(req.param1));
 
-        req.command = "zero";
-
-        return sendCmd(_client_eef_cmd_, req, res);
+        res.success = success;
+        if(success) res.message = "末端伸缩成功";
+        else res.message = "末端伸缩失败";
     }
 
-    /**
-     * @brief 回到零点
-     * @param message 服务响应消息
-     * @return true:服务调用成功 false:服务调用失败
-     */
-    bool Client::zero(std::string& message) {
-        piper_msgs_srvs::piper_cmd::Request req;
-        piper_msgs_srvs::piper_cmd::Response res;
+    /// @brief 末端旋转
+    else if(req.command == "rotate") {
+        bool success = _eef_controller_.eefRotate(std::stod(req.param1));
 
-        req.command = "zero";
-
-        bool success = sendCmd(_client_eef_cmd_, req, res);
-        message = res.message;
-
-        return success && res.success;
+        res.success = success;
+        if(success) res.message = "末端旋转成功";
+        else res.message = "末端旋转失败";
     }
 
-    /**
-     * @brief 设置末端在底座坐标系下的目标位姿
-     * @param x 目标x轴位置（单位：米）
-     * @param y 目标y轴位置（单位：米）
-     * @param z 目标z轴位置（单位：米）
-     * @param roll 目标滚转角（单位：弧度）
-     * @param pitch 目标俯仰角（单位：弧度）
-     * @param yaw 目标偏航角（单位：弧度）
-     * @return true:服务调用成功 false:服务调用失败
-     * @note RPY均为0时，机械臂启用前馈计算
-     */
-    bool Client::goalBase(double x, double y, double z, double roll, double pitch, double yaw) {
-        piper_msgs_srvs::piper_cmd::Request req;
-        piper_msgs_srvs::piper_cmd::Response res;
-
-        req.command = "goal_base";
-        req.x = x; req.y = y; req.z = z;
-        req.roll = roll; req.pitch = pitch; req.yaw = yaw;
-
-        return sendCmd(_client_eef_cmd_, req, res);
-    }
-
-    /**
-     * @brief 设置末端在底座坐标系下的目标位姿
-     * @param x 目标x轴位置（单位：米）
-     * @param y 目标y轴位置（单位：米）
-     * @param z 目标z轴位置（单位：米）
-     * @param roll 目标滚转角（单位：弧度）
-     * @param pitch 目标俯仰角（单位：弧度）
-     * @param yaw 目标偏航角（单位：弧度）
-     * @param message 服务响应消息
-     * @return true:服务调用成功 false:服务调用失败
-     * @note RPY均为0时，机械臂启用前馈计算
-     */
-    bool Client::goalBase(double x, double y, double z, double roll, double pitch, double yaw, std::string& message) {
-        piper_msgs_srvs::piper_cmd::Request req;
-        piper_msgs_srvs::piper_cmd::Response res;
-
-        req.command = "goal_base";
-        req.x = x; req.y = y; req.z = z;
-        req.roll = roll; req.pitch = pitch; req.yaw = yaw;
-
-        bool success = sendCmd(_client_eef_cmd_, req, res);
-        message = res.message;
-
-        return success && res.success;
-    }
-
-    /**
-     * @brief 设置末端在末端坐标系下的目标位姿
-     * @param x 目标x轴位置（单位：米）
-     * @param y 目标y轴位置（单位：米）
-     * @param z 目标z轴位置（单位：米）
-     * @param roll 目标滚转角（单位：弧度）
-     * @param pitch 目标俯仰角（单位：弧度）
-     * @param yaw 目标偏航角（单位：弧度）
-     * @return true:服务调用成功 false:服务调用失败
-     * @note RPY均为0时，机械臂启用前馈计算
-     */
-    bool Client::goalEef(double x, double y, double z, double roll, double pitch, double yaw) {
-        piper_msgs_srvs::piper_cmd::Request req;
-        piper_msgs_srvs::piper_cmd::Response res;
-
-        req.command = "goal_eef";
-        req.x = x; req.y = y; req.z = z;
-        req.roll = roll; req.pitch = pitch; req.yaw = yaw;
-
-        return sendCmd(_client_eef_cmd_, req, res);
-    }
-
-    /**
-     * @brief 设置末端在末端坐标系下的目标位姿
-     * @param x 目标x轴位置（单位：米）
-     * @param y 目标y轴位置（单位：米）
-     * @param z 目标z轴位置（单位：米）
-     * @param roll 目标滚转角（单位：弧度）
-     * @param pitch 目标俯仰角（单位：弧度）
-     * @param yaw 目标偏航角（单位：弧度）
-     * @param message 服务响应消息
-     * @return true:服务调用成功 false:服务调用失败
-     * @note RPY均为0时，机械臂启用前馈计算
-     */
-    bool Client::goalEef(double x, double y, double z, double roll, double pitch, double yaw, std::string& message) {
-        piper_msgs_srvs::piper_cmd::Request req;
-        piper_msgs_srvs::piper_cmd::Response res;
-
-        req.command = "goal_eef";
-        req.x = x; req.y = y; req.z = z;
-        req.roll = roll; req.pitch = pitch; req.yaw = yaw;
-
-        bool success = sendCmd(_client_eef_cmd_, req, res);
-        message = res.message;
-
-        return success && res.success;
-    }
-
-    /**
-     * @brief 末端伸缩
-     * @param length 伸缩长度（单位：米，正值表示伸出，负值表示缩回）
-     * @return true:服务调用成功 false:服务调用失败
-     */
-    bool Client::stretch(double length) {
-        piper_msgs_srvs::piper_cmd::Request req;
-        piper_msgs_srvs::piper_cmd::Response res;
-
-        req.command = "stretch";
-        req.param1 = std::to_string(length);
-
-        return sendCmd(_client_eef_cmd_, req, res);
-    }
-
-    /**
-     * @brief 末端伸缩
-     * @param length 伸缩长度（单位：米，正值表示伸出，负值表示缩回）
-     * @param message 服务响应消息
-     * @return true:服务调用成功 false:服务调用失败
-     */
-    bool Client::stretch(double length, std::string& message) {
-        piper_msgs_srvs::piper_cmd::Request req;
-        piper_msgs_srvs::piper_cmd::Response res;
-
-        req.command = "stretch";
-        req.param1 = std::to_string(length);
-
-        bool success = sendCmd(_client_eef_cmd_, req, res);
-        message = res.message;
-
-        return success && res.success;
-    }
-
-    /**
-     * @brief 末端旋转
-     * @param angle 旋转角度（单位：弧度，正值表示逆时针旋转，负值表示顺时针旋转）
-     * @return true:服务调用成功 false:服务调用失败
-     */
-    bool Client::rotate(double angle) {
-        piper_msgs_srvs::piper_cmd::Request req;
-        piper_msgs_srvs::piper_cmd::Response res;
-
-        req.command = "rotate";
-        req.param1 = std::to_string(angle);
-
-        return sendCmd(_client_eef_cmd_, req, res);
-    }
-
-    /**
-     * @brief 末端旋转
-     * @param angle 旋转角度（单位：度，正值表示逆时针旋转，负值表示顺时针旋转）
-     * @param message 服务响应消息
-     * @return true:服务调用成功 false:服务调用失败
-     */
-    bool Client::rotate(double angle, std::string& message) {
-        piper_msgs_srvs::piper_cmd::Request req;
-        piper_msgs_srvs::piper_cmd::Response res;
-
-        req.command = "rotate";
-        req.param1 = std::to_string(angle);
-
-        bool success = sendCmd(_client_eef_cmd_, req, res);
-        message = res.message;
-
-        return success && res.success;
-    }
-
-    /**
-     * @brief 获取末端相对底座坐标系的位姿
-     * @param x 末端x轴位置（单位：米）
-     * @param y 末端y轴位置（单位：米）
-     * @param z 末端z轴位置（单位：米）
-     * @param roll 末端滚转角（单位：弧度）
-     * @param pitch 末端俯仰角（单位：弧度）
-     * @param yaw 末端偏航角（单位：弧度）
-     * @return true:服务调用成功 false:服务调用失败
-     */
-    bool Client::getPose(double& x, double& y, double& z, double& roll, double& pitch, double& yaw) {
-        piper_msgs_srvs::piper_cmd::Request req;
-        piper_msgs_srvs::piper_cmd::Response res;
-
-        req.command = "get_pose";
-
-        if(sendCmd(_client_eef_cmd_, req, res)) {
-            x = res.cur_x; y = res.cur_y; z = res.cur_z;
-            roll = res.cur_roll; pitch = res.cur_pitch; yaw = res.cur_yaw;
-
-            return true;
-        }
-        else return false;
-    }
-
-    /**
-     * @brief 获取末端相对底座坐标系的位姿
-     * @param x 末端x轴位置（单位：米）
-     * @param y 末端y轴位置（单位：米）
-     * @param z 末端z轴位置（单位：米）
-     * @param roll 末端滚转角（单位：弧度）
-     * @param pitch 末端俯仰角（单位：弧度）
-     * @param yaw 末端偏航角（单位：弧度）
-     * @param message 服务响应消息
-     * @return true:服务调用成功 false:服务调用失败
-     */
-    bool Client::getPose(double& x, double& y, double& z, double& roll, double& pitch, double& yaw, std::string& message) {
-        piper_msgs_srvs::piper_cmd::Request req;
-        piper_msgs_srvs::piper_cmd::Response res;
-
-        req.command = "get_pose";
-
-        bool success = sendCmd(_client_eef_cmd_, req, res);
-        message = res.message;
-
-        if(success && res.success) {
-            x = res.cur_x; y = res.cur_y; z = res.cur_z;
-            roll = res.cur_roll; pitch = res.cur_pitch; yaw = res.cur_yaw;
-
-            return true;
-        }
-        else return false;
-    }
-
-    /**
-     * @brief 获取各关节角度
-     * @param joints 关节角度数组（单位：弧度）
-     * @return true:服务调用成功 false:服务调用失败
-     */
-    bool Client::getJoints(std::vector<double>& joints) {
-        piper_msgs_srvs::piper_cmd::Request req;
-        piper_msgs_srvs::piper_cmd::Response res;
-
-        req.command = "get_joints";
-
-        if(sendCmd(_client_eef_cmd_, req, res)) {
-            joints = res.cur_joint;
-            return true;
-        }
-        else return false;
-    }
-
-    /**
-     * @brief 获取各关节角度
-     * @param joints 关节角度数组（单位：弧度）
-     * @param message 服务响应消息
-     * @return true:服务调用成功 false:服务调用失败
-     */
-    bool Client::getJoints(std::vector<double>& joints, std::string& message) {
-        piper_msgs_srvs::piper_cmd::Request req;
-        piper_msgs_srvs::piper_cmd::Response res;
-
-        req.command = "get_joints";
-
-        bool success = sendCmd(_client_eef_cmd_, req, res);
-        message = res.message;
-
-        if(success && res.success) {
-            joints = res.cur_joint;
-            return true;
-        }
-        else return false;
-    }
-
-    /**
-     * @brief 添加任务
-     * @param target_pose 目标位姿
-     * @param wait_time 到达目标后的等待时间（单位：秒）
-     * @param action 目标动作（"NONE"：无动作，"PICK"：抓取，"STRETCH"：伸缩，"ROTATE"：旋转）
-     * @param param1 动作参数（伸缩长度或旋转角度，单位：米或弧度）
-     * @return true:服务调用成功 false:服务调用失败
-     */
-    bool Client::addTask(geometry_msgs::Pose target_pose, double wait_time, const std::string& action, double param1) {
-        piper_msgs_srvs::piper_cmd::Request req;
-        piper_msgs_srvs::piper_cmd::Response res;
-
-        req.command = "add_task";
-        req.x = target_pose.position.x;
-        req.y = target_pose.position.y;
-        req.z = target_pose.position.z;
-
-        tf2::Quaternion qtn(target_pose.orientation.x,
-            target_pose.orientation.y,
-            target_pose.orientation.z,
-            target_pose.orientation.w);
+    /// @brief 获取末端相对底座坐标系的位姿
+    else if(req.command == "get_pose") {
+        geometry_msgs::Pose cur_pose = _eef_controller_.getCurrentEefPose();
+        tf2::Quaternion qtn(cur_pose.orientation.x,
+            cur_pose.orientation.y,
+            cur_pose.orientation.z,
+            cur_pose.orientation.w);
         double roll, pitch, yaw;
         tf2::Matrix3x3(qtn).getRPY(roll, pitch, yaw);
 
-        req.roll = roll;
-        req.pitch = pitch;
-        req.yaw = yaw;
-
-        req.param1 = std::to_string(wait_time);
-        req.param2 = action;
-        req.param3 = std::to_string(param1);
-
-        return sendCmd(_client_task_planner_, req, res);
+        res.cur_x = cur_pose.position.x; res.cur_y = cur_pose.position.y; res.cur_z = cur_pose.position.z;
+        res.cur_roll = roll; res.cur_pitch = pitch; res.cur_yaw = yaw;
+        res.message = "获取末端位姿成功";
+        res.success = true;
     }
 
-    /**
-     * @brief 添加任务
-     * @param target_pose 目标位姿
-     * @param wait_time 到达目标后的等待时间（单位：秒）
-     * @param action 目标动作（"NONE"：无动作，"PICK"：抓取，"STRETCH"：伸缩，"ROTATE"：旋转）
-     * @param param1 动作参数（伸缩长度或旋转角度，单位：米或弧度）
-     * @param message 服务响应消息
-     * @return true:服务调用成功 false:服务调用失败
-     */
-    bool Client::addTask(geometry_msgs::Pose target_pose, double wait_time, const std::string& action, double param1, std::string& message) {
-        piper_msgs_srvs::piper_cmd::Request req;
-        piper_msgs_srvs::piper_cmd::Response res;
+    /// @brief 获取各关节角度
+    else if(req.command == "get_joints") {
+        res.cur_joint = _eef_controller_.getCurrentJointPose();
 
-        req.command = "add_task";
-        req.x = target_pose.position.x;
-        req.y = target_pose.position.y;
-        req.z = target_pose.position.z;
-
-        tf2::Quaternion qtn(target_pose.orientation.x,
-            target_pose.orientation.y,
-            target_pose.orientation.z,
-            target_pose.orientation.w);
-        double roll, pitch, yaw;
-        tf2::Matrix3x3(qtn).getRPY(roll, pitch, yaw);
-
-        req.roll = roll;
-        req.pitch = pitch;
-        req.yaw = yaw;
-
-        req.param1 = std::to_string(wait_time);
-        req.param2 = action;
-        req.param3 = std::to_string(param1);
-
-        bool success = sendCmd(_client_task_planner_, req, res);
-        message = res.message;
-
-        return success && res.success;
+        res.message = "获取各关节角度成功";
+        res.success = true;
     }
 
-    /**
-     * @brief 清除所有任务
-     * @return true:服务调用成功 false:服务调用失败
-     */
-    bool Client::clearTasks(void) {
-        piper_msgs_srvs::piper_cmd::Request req;
-        piper_msgs_srvs::piper_cmd::Response res;
-
-        req.command = "clear_tasks";
-
-        return sendCmd(_client_task_planner_, req, res);
+    /// @brief 末端夹爪关闭
+    else if(req.command == "open") {
+        std::string data = "$OPEN#";
+        _stm32_serialer_.sendData(data);
     }
 
-    /**
-     * @brief 清除所有任务
-     * @param message 服务响应消息
-     * @return true:服务调用成功 false:服务调用失败
-     */
-    bool Client::clearTasks(std::string& message) {
-        piper_msgs_srvs::piper_cmd::Request req;
-        piper_msgs_srvs::piper_cmd::Response res;
-
-        req.command = "clear_tasks";
-
-        bool success = sendCmd(_client_task_planner_, req, res);
-        message = res.message;
-
-        return success && res.success;
+    /// @brief 末端夹爪关闭
+    else if(req.command == "close") {
+        std::string data = "$CLOSE#";
+        _stm32_serialer_.sendData(data);
     }
 
-    /**
-     * @brief 执行所有任务
-     * @return true:服务调用成功 false:服务调用失败
-     */
-    bool Client::exeAllTasks(void) {
-        piper_msgs_srvs::piper_cmd::Request req;
-        piper_msgs_srvs::piper_cmd::Response res;
-
-        req.command = "exe_all_tasks";
-
-        return sendCmd(_client_task_planner_, req, res);
+    /// @brief 末端夹爪角度控制
+    else if(req.command == "angle") {
+        std::string data = "$ANGLE:" + std::to_string(req.angle_eff) + "#";
+        _stm32_serialer_.sendData(data);
     }
 
-    /**
-     * @brief 执行所有任务
-     * @param message 服务响应消息
-     * @return true:服务调用成功 false:服务调用失败
-     */
-    bool Client::exeAllTasks(std::string& message) {
-        piper_msgs_srvs::piper_cmd::Request req;
-        piper_msgs_srvs::piper_cmd::Response res;
-
-        req.command = "exe_all_tasks";
-
-        bool success = sendCmd(_client_task_planner_, req, res);
-        message = res.message;
-
-        return success && res.success;
+    /// @brief 未知命令
+    else {
+        res.success = false;
+        res.message = "未知命令";
     }
 
-    // ! ========================= 私 有 函 数 实 现 ========================= ! //
+    return true;
+}
 
-    /**
-     * @brief 检查是否需要升降台升降
-     * @param z 末端在底座坐标系下的目标z轴高度
-     * @param serialer STM32串口对象
-     */
-    static bool CheckLifterIsNeed(double z, STM32Serial& serialer) {
-        // TODO: z轴太高或太低通知升降台
-        if(z > 0.65 || z < -0.15) {
-            double offset = 0.0f;
+/**
+ * @brief 任务组规划服务回调函数
+ * @details 支持的服务有：
+ *          - add_task：添加任务
+ *          - clear_tasks：清除所有任务
+ *          - exe_all_tasks：执行所有任务
+ * @param req 服务请求
+ * @param res 服务响应
+ * @return true:服务调用成功 false:服务调用失败
+ */
+bool Server::taskGroupPlannerCallback(piper_msgs_srvs::piper_cmd::Request& req,
+    piper_msgs_srvs::piper_cmd::Response& res) {
+    /// @brief 添加任务
+    if(req.command == "add_task") {
+        geometry_msgs::Pose target_pose;
+        tf2::Quaternion qtn;
 
-            if(z > 0.65) offset = std::round((z - 0.75) * 100.0) / 100.0;
-            else offset = std::round((z + 0.25) * 100.0) / 100.0;
+        qtn.setRPY(req.roll, req.pitch, req.yaw);
+        qtn.normalize();
 
-            std::string data = "$LIFTER:" + std::to_string(offset) + "#";
-            serialer.sendData(data);
+        target_pose.position.x = req.x;
+        target_pose.position.y = req.y;
+        target_pose.position.z = req.z;
+        target_pose.orientation.x = qtn.x();
+        target_pose.orientation.y = qtn.y();
+        target_pose.orientation.z = qtn.z();
+        target_pose.orientation.w = qtn.w();
 
-            std::string res_data = serialer.rcvdData(1000);
-            if(res_data != "$LIFTER:START#") return false;
+        TaskTarget_t target;
+        target.pose = target_pose;
+        target.wait_time = req.param1.empty() ? 0.0 : std::stod(req.param1);
+        if(req.param2 == "NONE") target.action = TargetAction_e::NONE;
+        else if(req.param2 == "PICK") target.action = TargetAction_e::PICK;
+        else if(req.param2 == "STRETCH") target.action = TargetAction_e::STRETCH;
+        else if(req.param2 == "ROTATE") target.action = TargetAction_e::ROTATE;
+        target.param1 = req.param3.empty() ? 0.0 : std::stod(req.param3);
 
-            res_data = serialer.rcvdData(0);
-            if(res_data != "$LIFTER:OK#") return false;
+        _task_planner_.add(target);
+
+        res.success = true;
+        res.message = "添加任务成功";
+    }
+
+    /// @brief 清除所有任务
+    else if(req.command == "clear_tasks") {
+        _task_planner_.clear();
+
+        res.success = true;
+        res.message = "清除任务成功";
+    }
+
+    /// @brief 执行所有任务
+    else if(req.command == "exe_all_tasks") {
+        _task_planner_.executeAll();
+
+        res.success = true;
+        res.message = "开始执行所有任务";
+    }
+
+    return true;
+}
+
+/**
+ * @brief 构造函数
+ * @param nh ROS节点句柄
+ */
+Client::Client(ros::NodeHandle& nh) : _nh_(nh) {
+    // 等待服务器可用
+    ROS_INFO("等待机械臂服务...");
+    ros::service::waitForService("piper_server/eef_cmd");
+
+    // 创建客户端
+    _client_eef_cmd_ = _nh_.serviceClient<piper_msgs_srvs::piper_cmd>("piper_server/eef_cmd");
+
+    ROS_INFO("机械臂服务已连接");
+}
+
+/**
+ * @brief 发送机械臂命令
+ * @param srv 服务对象
+ * @param req 服务请求
+ * @param res 服务响应
+ * @return true:服务调用成功 false:服务调用失败
+ */
+bool Client::sendCmd(ros::ServiceClient& client,
+    const piper_msgs_srvs::piper_cmd::Request& req,
+    piper_msgs_srvs::piper_cmd::Response& res) {
+    piper_msgs_srvs::piper_cmd srv;
+    srv.request = req;
+
+    if(client.call(srv)) {
+        res = srv.response;
+
+        if(!res.success) {
+            ROS_ERROR("机械臂服务调用失败：%s", res.message.c_str());
         }
 
         return true;
     }
+    else {
+        ROS_ERROR("无法请求机械臂服务");
+        return false;
+    }
+}
+
+/**
+ * @brief 回到零点
+ * @return true:服务调用成功 false:服务调用失败
+ */
+bool Client::zero(void) {
+    piper_msgs_srvs::piper_cmd::Request req;
+    piper_msgs_srvs::piper_cmd::Response res;
+
+    req.command = "zero";
+
+    return sendCmd(_client_eef_cmd_, req, res);
+}
+
+/**
+ * @brief 回到零点
+ * @param message 服务响应消息
+ * @return true:服务调用成功 false:服务调用失败
+ */
+bool Client::zero(std::string& message) {
+    piper_msgs_srvs::piper_cmd::Request req;
+    piper_msgs_srvs::piper_cmd::Response res;
+
+    req.command = "zero";
+
+    bool success = sendCmd(_client_eef_cmd_, req, res);
+    message = res.message;
+
+    return success && res.success;
+}
+
+/**
+ * @brief 设置末端在底座坐标系下的目标位姿
+ * @param x 目标x轴位置（单位：米）
+ * @param y 目标y轴位置（单位：米）
+ * @param z 目标z轴位置（单位：米）
+ * @param roll 目标滚转角（单位：弧度）
+ * @param pitch 目标俯仰角（单位：弧度）
+ * @param yaw 目标偏航角（单位：弧度）
+ * @return true:服务调用成功 false:服务调用失败
+ * @note RPY均为0时，机械臂启用前馈计算
+ */
+bool Client::goalBase(double x, double y, double z, double roll, double pitch, double yaw) {
+    piper_msgs_srvs::piper_cmd::Request req;
+    piper_msgs_srvs::piper_cmd::Response res;
+
+    req.command = "goal_base";
+    req.x = x; req.y = y; req.z = z;
+    req.roll = roll; req.pitch = pitch; req.yaw = yaw;
+
+    return sendCmd(_client_eef_cmd_, req, res);
+}
+
+/**
+ * @brief 设置末端在底座坐标系下的目标位姿
+ * @param x 目标x轴位置（单位：米）
+ * @param y 目标y轴位置（单位：米）
+ * @param z 目标z轴位置（单位：米）
+ * @param roll 目标滚转角（单位：弧度）
+ * @param pitch 目标俯仰角（单位：弧度）
+ * @param yaw 目标偏航角（单位：弧度）
+ * @param message 服务响应消息
+ * @return true:服务调用成功 false:服务调用失败
+ * @note RPY均为0时，机械臂启用前馈计算
+ */
+bool Client::goalBase(double x, double y, double z, double roll, double pitch, double yaw, std::string& message) {
+    piper_msgs_srvs::piper_cmd::Request req;
+    piper_msgs_srvs::piper_cmd::Response res;
+
+    req.command = "goal_base";
+    req.x = x; req.y = y; req.z = z;
+    req.roll = roll; req.pitch = pitch; req.yaw = yaw;
+
+    bool success = sendCmd(_client_eef_cmd_, req, res);
+    message = res.message;
+
+    return success && res.success;
+}
+
+/**
+ * @brief 设置末端在末端坐标系下的目标位姿
+ * @param x 目标x轴位置（单位：米）
+ * @param y 目标y轴位置（单位：米）
+ * @param z 目标z轴位置（单位：米）
+ * @param roll 目标滚转角（单位：弧度）
+ * @param pitch 目标俯仰角（单位：弧度）
+ * @param yaw 目标偏航角（单位：弧度）
+ * @return true:服务调用成功 false:服务调用失败
+ * @note RPY均为0时，机械臂启用前馈计算
+ */
+bool Client::goalEef(double x, double y, double z, double roll, double pitch, double yaw) {
+    piper_msgs_srvs::piper_cmd::Request req;
+    piper_msgs_srvs::piper_cmd::Response res;
+
+    req.command = "goal_eef";
+    req.x = x; req.y = y; req.z = z;
+    req.roll = roll; req.pitch = pitch; req.yaw = yaw;
+
+    return sendCmd(_client_eef_cmd_, req, res);
+}
+
+/**
+ * @brief 设置末端在末端坐标系下的目标位姿
+ * @param x 目标x轴位置（单位：米）
+ * @param y 目标y轴位置（单位：米）
+ * @param z 目标z轴位置（单位：米）
+ * @param roll 目标滚转角（单位：弧度）
+ * @param pitch 目标俯仰角（单位：弧度）
+ * @param yaw 目标偏航角（单位：弧度）
+ * @param message 服务响应消息
+ * @return true:服务调用成功 false:服务调用失败
+ * @note RPY均为0时，机械臂启用前馈计算
+ */
+bool Client::goalEef(double x, double y, double z, double roll, double pitch, double yaw, std::string& message) {
+    piper_msgs_srvs::piper_cmd::Request req;
+    piper_msgs_srvs::piper_cmd::Response res;
+
+    req.command = "goal_eef";
+    req.x = x; req.y = y; req.z = z;
+    req.roll = roll; req.pitch = pitch; req.yaw = yaw;
+
+    bool success = sendCmd(_client_eef_cmd_, req, res);
+    message = res.message;
+
+    return success && res.success;
+}
+
+/**
+ * @brief 末端伸缩
+ * @param length 伸缩长度（单位：米，正值表示伸出，负值表示缩回）
+ * @return true:服务调用成功 false:服务调用失败
+ */
+bool Client::stretch(double length) {
+    piper_msgs_srvs::piper_cmd::Request req;
+    piper_msgs_srvs::piper_cmd::Response res;
+
+    req.command = "stretch";
+    req.param1 = std::to_string(length);
+
+    return sendCmd(_client_eef_cmd_, req, res);
+}
+
+/**
+ * @brief 末端伸缩
+ * @param length 伸缩长度（单位：米，正值表示伸出，负值表示缩回）
+ * @param message 服务响应消息
+ * @return true:服务调用成功 false:服务调用失败
+ */
+bool Client::stretch(double length, std::string& message) {
+    piper_msgs_srvs::piper_cmd::Request req;
+    piper_msgs_srvs::piper_cmd::Response res;
+
+    req.command = "stretch";
+    req.param1 = std::to_string(length);
+
+    bool success = sendCmd(_client_eef_cmd_, req, res);
+    message = res.message;
+
+    return success && res.success;
+}
+
+/**
+ * @brief 末端旋转
+ * @param angle 旋转角度（单位：弧度，正值表示逆时针旋转，负值表示顺时针旋转）
+ * @return true:服务调用成功 false:服务调用失败
+ */
+bool Client::rotate(double angle) {
+    piper_msgs_srvs::piper_cmd::Request req;
+    piper_msgs_srvs::piper_cmd::Response res;
+
+    req.command = "rotate";
+    req.param1 = std::to_string(angle);
+
+    return sendCmd(_client_eef_cmd_, req, res);
+}
+
+/**
+ * @brief 末端旋转
+ * @param angle 旋转角度（单位：度，正值表示逆时针旋转，负值表示顺时针旋转）
+ * @param message 服务响应消息
+ * @return true:服务调用成功 false:服务调用失败
+ */
+bool Client::rotate(double angle, std::string& message) {
+    piper_msgs_srvs::piper_cmd::Request req;
+    piper_msgs_srvs::piper_cmd::Response res;
+
+    req.command = "rotate";
+    req.param1 = std::to_string(angle);
+
+    bool success = sendCmd(_client_eef_cmd_, req, res);
+    message = res.message;
+
+    return success && res.success;
+}
+
+/**
+ * @brief 获取末端相对底座坐标系的位姿
+ * @param x 末端x轴位置（单位：米）
+ * @param y 末端y轴位置（单位：米）
+ * @param z 末端z轴位置（单位：米）
+ * @param roll 末端滚转角（单位：弧度）
+ * @param pitch 末端俯仰角（单位：弧度）
+ * @param yaw 末端偏航角（单位：弧度）
+ * @return true:服务调用成功 false:服务调用失败
+ */
+bool Client::getPose(double& x, double& y, double& z, double& roll, double& pitch, double& yaw) {
+    piper_msgs_srvs::piper_cmd::Request req;
+    piper_msgs_srvs::piper_cmd::Response res;
+
+    req.command = "get_pose";
+
+    if(sendCmd(_client_eef_cmd_, req, res)) {
+        x = res.cur_x; y = res.cur_y; z = res.cur_z;
+        roll = res.cur_roll; pitch = res.cur_pitch; yaw = res.cur_yaw;
+
+        return true;
+    }
+    else return false;
+}
+
+/**
+ * @brief 获取末端相对底座坐标系的位姿
+ * @param x 末端x轴位置（单位：米）
+ * @param y 末端y轴位置（单位：米）
+ * @param z 末端z轴位置（单位：米）
+ * @param roll 末端滚转角（单位：弧度）
+ * @param pitch 末端俯仰角（单位：弧度）
+ * @param yaw 末端偏航角（单位：弧度）
+ * @param message 服务响应消息
+ * @return true:服务调用成功 false:服务调用失败
+ */
+bool Client::getPose(double& x, double& y, double& z, double& roll, double& pitch, double& yaw, std::string& message) {
+    piper_msgs_srvs::piper_cmd::Request req;
+    piper_msgs_srvs::piper_cmd::Response res;
+
+    req.command = "get_pose";
+
+    bool success = sendCmd(_client_eef_cmd_, req, res);
+    message = res.message;
+
+    if(success && res.success) {
+        x = res.cur_x; y = res.cur_y; z = res.cur_z;
+        roll = res.cur_roll; pitch = res.cur_pitch; yaw = res.cur_yaw;
+
+        return true;
+    }
+    else return false;
+}
+
+/**
+ * @brief 获取各关节角度
+ * @param joints 关节角度数组（单位：弧度）
+ * @return true:服务调用成功 false:服务调用失败
+ */
+bool Client::getJoints(std::vector<double>& joints) {
+    piper_msgs_srvs::piper_cmd::Request req;
+    piper_msgs_srvs::piper_cmd::Response res;
+
+    req.command = "get_joints";
+
+    if(sendCmd(_client_eef_cmd_, req, res)) {
+        joints = res.cur_joint;
+        return true;
+    }
+    else return false;
+}
+
+/**
+ * @brief 获取各关节角度
+ * @param joints 关节角度数组（单位：弧度）
+ * @param message 服务响应消息
+ * @return true:服务调用成功 false:服务调用失败
+ */
+bool Client::getJoints(std::vector<double>& joints, std::string& message) {
+    piper_msgs_srvs::piper_cmd::Request req;
+    piper_msgs_srvs::piper_cmd::Response res;
+
+    req.command = "get_joints";
+
+    bool success = sendCmd(_client_eef_cmd_, req, res);
+    message = res.message;
+
+    if(success && res.success) {
+        joints = res.cur_joint;
+        return true;
+    }
+    else return false;
+}
+
+/**
+ * @brief 添加任务
+ * @param target_pose 目标位姿
+ * @param wait_time 到达目标后的等待时间（单位：秒）
+ * @param action 目标动作（"NONE"：无动作，"PICK"：抓取，"STRETCH"：伸缩，"ROTATE"：旋转）
+ * @param param1 动作参数（伸缩长度或旋转角度，单位：米或弧度）
+ * @return true:服务调用成功 false:服务调用失败
+ */
+bool Client::addTask(geometry_msgs::Pose target_pose, double wait_time, const std::string& action, double param1) {
+    piper_msgs_srvs::piper_cmd::Request req;
+    piper_msgs_srvs::piper_cmd::Response res;
+
+    req.command = "add_task";
+    req.x = target_pose.position.x;
+    req.y = target_pose.position.y;
+    req.z = target_pose.position.z;
+
+    tf2::Quaternion qtn(target_pose.orientation.x,
+        target_pose.orientation.y,
+        target_pose.orientation.z,
+        target_pose.orientation.w);
+    double roll, pitch, yaw;
+    tf2::Matrix3x3(qtn).getRPY(roll, pitch, yaw);
+
+    req.roll = roll;
+    req.pitch = pitch;
+    req.yaw = yaw;
+
+    req.param1 = std::to_string(wait_time);
+    req.param2 = action;
+    req.param3 = std::to_string(param1);
+
+    return sendCmd(_client_task_planner_, req, res);
+}
+
+/**
+ * @brief 添加任务
+ * @param target_pose 目标位姿
+ * @param wait_time 到达目标后的等待时间（单位：秒）
+ * @param action 目标动作（"NONE"：无动作，"PICK"：抓取，"STRETCH"：伸缩，"ROTATE"：旋转）
+ * @param param1 动作参数（伸缩长度或旋转角度，单位：米或弧度）
+ * @param message 服务响应消息
+ * @return true:服务调用成功 false:服务调用失败
+ */
+bool Client::addTask(geometry_msgs::Pose target_pose, double wait_time, const std::string& action, double param1, std::string& message) {
+    piper_msgs_srvs::piper_cmd::Request req;
+    piper_msgs_srvs::piper_cmd::Response res;
+
+    req.command = "add_task";
+    req.x = target_pose.position.x;
+    req.y = target_pose.position.y;
+    req.z = target_pose.position.z;
+
+    tf2::Quaternion qtn(target_pose.orientation.x,
+        target_pose.orientation.y,
+        target_pose.orientation.z,
+        target_pose.orientation.w);
+    double roll, pitch, yaw;
+    tf2::Matrix3x3(qtn).getRPY(roll, pitch, yaw);
+
+    req.roll = roll;
+    req.pitch = pitch;
+    req.yaw = yaw;
+
+    req.param1 = std::to_string(wait_time);
+    req.param2 = action;
+    req.param3 = std::to_string(param1);
+
+    bool success = sendCmd(_client_task_planner_, req, res);
+    message = res.message;
+
+    return success && res.success;
+}
+
+/**
+ * @brief 清除所有任务
+ * @return true:服务调用成功 false:服务调用失败
+ */
+bool Client::clearTasks(void) {
+    piper_msgs_srvs::piper_cmd::Request req;
+    piper_msgs_srvs::piper_cmd::Response res;
+
+    req.command = "clear_tasks";
+
+    return sendCmd(_client_task_planner_, req, res);
+}
+
+/**
+ * @brief 清除所有任务
+ * @param message 服务响应消息
+ * @return true:服务调用成功 false:服务调用失败
+ */
+bool Client::clearTasks(std::string& message) {
+    piper_msgs_srvs::piper_cmd::Request req;
+    piper_msgs_srvs::piper_cmd::Response res;
+
+    req.command = "clear_tasks";
+
+    bool success = sendCmd(_client_task_planner_, req, res);
+    message = res.message;
+
+    return success && res.success;
+}
+
+/**
+ * @brief 执行所有任务
+ * @return true:服务调用成功 false:服务调用失败
+ */
+bool Client::exeAllTasks(void) {
+    piper_msgs_srvs::piper_cmd::Request req;
+    piper_msgs_srvs::piper_cmd::Response res;
+
+    req.command = "exe_all_tasks";
+
+    return sendCmd(_client_task_planner_, req, res);
+}
+
+/**
+ * @brief 执行所有任务
+ * @param message 服务响应消息
+ * @return true:服务调用成功 false:服务调用失败
+ */
+bool Client::exeAllTasks(std::string& message) {
+    piper_msgs_srvs::piper_cmd::Request req;
+    piper_msgs_srvs::piper_cmd::Response res;
+
+    req.command = "exe_all_tasks";
+
+    bool success = sendCmd(_client_task_planner_, req, res);
+    message = res.message;
+
+    return success && res.success;
+}
+
+// ! ========================= 私 有 函 数 实 现 ========================= ! //
+
+/**
+ * @brief 检查是否需要升降台升降
+ * @param z 末端在底座坐标系下的目标z轴高度
+ * @param serialer STM32串口对象
+ */
+static bool CheckLifterIsNeed(double z, STM32Serial& serialer) {
+    // TODO: z轴太高或太低通知升降台
+    if(z > 0.65 || z < -0.15) {
+        double offset = 0.0f;
+
+        if(z > 0.65) offset = std::round((z - 0.75) * 100.0) / 100.0;
+        else offset = std::round((z + 0.25) * 100.0) / 100.0;
+
+        std::string data = "$LIFTER:" + std::to_string(offset) + "#";
+        serialer.sendData(data);
+
+        std::string res_data = serialer.rcvdData(1000);
+        if(res_data != "$LIFTER:START#") return false;
+
+        res_data = serialer.rcvdData(0);
+        if(res_data != "$LIFTER:OK#") return false;
+    }
+
+    return true;
+}
 
 }
 
