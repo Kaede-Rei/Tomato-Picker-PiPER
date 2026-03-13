@@ -82,7 +82,7 @@ ArmController::~ArmController() {
  */
 void ArmController::home() {
     ROS_INFO("将末端执行器复位到 home 位姿");
-    _arm_.setNamedTarget("home");
+    _arm_.setNamedTarget("zero");
     _arm_.move();
 }
 

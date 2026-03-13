@@ -33,6 +33,7 @@ micromamba create -n ros_env -c conda-forge -c robostack-noetic \
     ros-noetic-desktop-full \
     ros-dev-tools \
     ros-noetic-moveit \
+    ros-noetic-trac-ik-kinematics-plugin \
     ros-noetic-rosserial \
     ros-noetic-rosserial-python \
     compilers cxx-compiler c-compiler binutils sysroot_linux-64

@@ -146,9 +146,7 @@ add_library(${PROJECT_NAME}
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(piper_controller 
-#     src/arm_controller.cpp
-# )
+add_executable(test_node src/test_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -162,6 +160,11 @@ add_library(${PROJECT_NAME}
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(piper_controller 
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(test_node
+  piper_controller
   ${catkin_LIBRARIES}
 )
 
