@@ -38,6 +38,8 @@ micromamba create -n ros_env -c conda-forge -c robostack-noetic \
     ros-noetic-rosserial-python \
     compilers cxx-compiler c-compiler binutils sysroot_linux-64
 pip install python-can piper_sdk
+# optional trimesh can be used to simplify robotic arm meshes
+pip install fast-simplification trimesh
 # build the workspace
 . ./ros_env/use-mamba-gcc.sh && cd piper_ros && catkin_make -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 && source devel/setup.bash && cd ../piper_controller && catkin_make -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 && source devel/setup.bash && cd ..
 # or if you need clangd
