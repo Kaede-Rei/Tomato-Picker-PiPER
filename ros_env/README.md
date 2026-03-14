@@ -17,12 +17,12 @@ micromamba install -c conda-forge ros-noetic-rosserial ros-noetic-rosserial-pyth
 # Add Can and PiPER-SDK to the environment
 pip install python-can piper_sdk
 # Use the conda compilers to build the workspace, the cmake version depends on your system, here we use 3.5 as an example in Ubuntu 22.04
-# note: before building piper_controller, you need to build piper_ros and source the setup first, otherwise the new setup will overwrite the old setup causing the piper_ros be not found
+# note: before building piper_tomato, you need to build piper_ros and source the setup first, otherwise the new setup will overwrite the old setup causing the piper_ros be not found
 . ./ros_env/use-mamba-gcc.sh
 cd piper_ros
 catkin_make -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 source devel/setup.bash
-cd ../piper_controller
+cd ../piper_tomato
 catkin_make -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 ```
 
@@ -41,9 +41,9 @@ pip install python-can piper_sdk
 # optional trimesh can be used to simplify robotic arm meshes
 pip install fast-simplification trimesh
 # build the workspace
-. ./ros_env/use-mamba-gcc.sh && cd piper_ros && catkin_make -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 && source devel/setup.bash && cd ../piper_controller && catkin_make -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 && source devel/setup.bash && cd ..
+. ./ros_env/use-mamba-gcc.sh && cd piper_ros && catkin_make -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 && source devel/setup.bash && cd ../piper_tomato && catkin_make -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 && source devel/setup.bash && cd ..
 # or if you need clangd
-. ./ros_env/use-mamba-gcc.sh && cd piper_ros && catkin_make -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && source devel/setup.bash && cd ../piper_controller && catkin_make -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && source devel/setup.bash && cd .. && ln -sf ../piper_controller/build/compile_commands.json ./build/compile_commands.json
+. ./ros_env/use-mamba-gcc.sh && cd piper_ros && catkin_make -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && source devel/setup.bash && cd ../piper_tomato && catkin_make -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && source devel/setup.bash && cd .. && ln -sf ../piper_tomato/build/compile_commands.json ./build/compile_commands.json
 # run the demo
 cd .. && ./piper-start.sh
 ```

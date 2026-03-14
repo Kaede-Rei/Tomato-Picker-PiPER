@@ -5,4 +5,4 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 source "$SCRIPT_DIR/../piper_ros/devel/setup.bash"
-source "$SCRIPT_DIR/../piper_controller/devel/setup.bash"
+source "$SCRIPT_DIR/../piper_tomato/devel/setup.bash"
