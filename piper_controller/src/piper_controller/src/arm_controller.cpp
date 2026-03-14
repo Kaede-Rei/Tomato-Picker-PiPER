@@ -688,6 +688,24 @@ ErrorCode ArmController::cancel_async() {
 }
 
 /**
+ * @brief 在当前姿态基础上相对旋转 RPY 角度并转换为四元数（底座坐标系）
+ * @param q_in 当前姿态四元数
+ * @param roll 旋转角度（弧度）
+ * @param pitch 旋转角度（弧度）
+ * @param yaw 旋转角度（弧度）
+ * @return 旋转后的姿态四元数
+ */
+geometry_msgs::Quaternion ArmController::rotate_relative_rpy_to_quaternion(const geometry_msgs::Quaternion& q_in, double roll, double pitch, double yaw) {
+    tf2::Quaternion q_in_tf2, q_relative, q_out;
+    tf2::fromMsg(q_in, q_in_tf2);
+    q_relative.setRPY(roll, pitch, yaw);
+    q_out = q_in_tf2 * q_relative;
+    q_out.normalize();
+
+    return tf2::toMsg(q_out);
+}
+
+/**
  * @brief RPY 转四元数
  */
 geometry_msgs::Quaternion ArmController::rpy_to_quaternion(double roll, double pitch, double yaw) {
@@ -843,11 +861,11 @@ SearchReachablePose_e ArmController::search_reachable_pose(
     tf2::doTransform(target_pose_eef, target_pose_eef, tf_stamped);
 
     ros::NodeHandle pnh("~");
-    double step_deg = 3.0;
-    double radius_deg = 30.0;
-    int max_expand = 440;
-    pnh.param("reachable_pose_search/step_deg", step_deg, 3.0);
-    pnh.param("reachable_pose_search/radius_deg", radius_deg, 30.0);
+    double step_deg = 5.0;
+    double radius_deg = 60.0;
+    int max_expand = 624;
+    pnh.param("reachable_pose_search/step_deg", step_deg, 5.0);
+    pnh.param("reachable_pose_search/radius_deg", radius_deg, 60.0);
     max_expand = std::pow((2 * static_cast<int>(radius_deg / step_deg) + 1), 2) - 1;
 
     const double step = std::max(step_deg, 0.1) * M_PI / 180.0;

@@ -214,7 +214,10 @@ ErrorCode TwoFingerGripper::get_force(const std::string& force_name, double& for
 ServoGripper::ServoGripper(ros::NodeHandle& nh, const geometry_msgs::Pose& tcp_offset, const std::string& serial_port, int baud_rate)
     : EndEffector("servo_gripper"), _serialer_(nh, serial_port, baud_rate) {
     set_tcp_offset(tcp_offset);
-    ROS_INFO("总线舵机末端执行器控制器 已创建，串口：%s，波特率：%d", serial_port.c_str(), baud_rate);
+    if(!_serialer_.connect()) {
+        throw std::runtime_error("总线舵机末端执行器串口连接失败，串口端口: " + serial_port);
+    }
+    ROS_INFO("总线舵机末端执行器控制器创建成功，串口: %s, 波特率: %d", serial_port.c_str(), baud_rate);
 }
 
 /**

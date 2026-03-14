@@ -7,6 +7,7 @@
 
 #include <geometry_msgs/Pose.h>
 #include <moveit/move_group_interface/move_group_interface.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include "piper_controller/types.hpp"
 
@@ -194,19 +195,131 @@ public:
     virtual bool supports_grasp_planning() const { return false; }
 
     /**
-     * @brief 设置 TCP 偏移
+     * @brief 设置 TCP 偏移（相对于 flange）
+     * @param tcp_offset TCP 偏移位姿，即 tf_flange_tcp，表示从 flange 到 TCP 的变换矩阵
      */
-    void set_tcp_offset(const geometry_msgs::Pose& tcp_offset) { _tcp_offset_ = tcp_offset; }
+    void set_tcp_offset(const geometry_msgs::Pose& tcp_offset) { _tf_flange_tcp_ = tcp_offset; }
 
     /**
-     * @brief 获取 TCP 偏移
+     * @brief 获取 TCP 偏移（相对于 flange）
+     * @return TCP 偏移位姿
      */
-    const geometry_msgs::Pose& get_tcp_offset() const { return _tcp_offset_; }
+    const geometry_msgs::Pose& get_tcp_offset() const { return _tf_flange_tcp_; }
+
+    /**
+     * @brief 对 tcp_target 进行 T_TF 矩阵乘法做目标偏移
+     * @param tcp_target 想让 tcp 到达的目标位姿
+     * @return flange_target -> 得到让 flange 到达的目标位姿
+     * @note e.g. tcp_target = T_base_tcp -> return = T_base_tcp * T_tcp_flange = T_base_flange
+     * @note 参考系仍然是 base 且任务目标不变，变化的是去对齐该任务目标的末端参考点（从 tcp 改为 flange）
+     * @note 末端参考系同理：tcp_target = T_flange_tcp -> return = T_flange_tcp * T_tcp_flange = T_flange_flange
+     */
+    TargetVariant tcp_to_flange(const TargetVariant& tcp_target) const {
+        return std::visit(variant_visitor{
+            [this](const geometry_msgs::Pose& pose) -> TargetVariant {
+                return pose_multiply(pose, pose_inverse(this->_tf_flange_tcp_));
+            },
+            [this](const geometry_msgs::Point& point) -> TargetVariant {
+                geometry_msgs::Pose pose;
+                pose.position = point;
+                pose.orientation.w = 1.0; // 单位四元数
+                return pose_multiply(pose, pose_inverse(this->_tf_flange_tcp_)).position;
+            },
+            [this](const geometry_msgs::Quaternion& quat) -> TargetVariant {
+                geometry_msgs::Pose pose;
+                pose.orientation = quat;
+                return pose_multiply(pose, pose_inverse(this->_tf_flange_tcp_)).orientation;
+            },
+             [this](const geometry_msgs::PoseStamped& pose_stamped) -> TargetVariant {
+                geometry_msgs::PoseStamped transformed;
+                transformed.header = pose_stamped.header;
+                transformed.pose = pose_multiply(pose_stamped.pose, pose_inverse(this->_tf_flange_tcp_));
+                return transformed;
+            }
+            }, tcp_target);
+    }
+
+    /**
+     * @brief 对 flange_target 进行 T_TF 矩阵乘法做目标偏移
+     * @param flange_target 想让 flange 到达的目标位姿
+     * @return tcp_target -> 得到让 tcp 到达的目标位姿
+     * @note e.g. flange_target = T_base_flange -> return = T_base_flange * T_flange_tcp = T_base_tcp
+     * @note 参考系仍然是 base 且任务目标不变，变化的是去对齐该任务目标的末端参考点（从 flange 改为 tcp）
+     * @note 末端参考系同理：flange_target = T_flange_flange -> return = T_flange_flange * T_flange_tcp = T_flange_tcp
+     */
+    TargetVariant flange_to_tcp(const TargetVariant& flange_target) const {
+        return std::visit(variant_visitor{
+            [this](const geometry_msgs::Pose& pose) -> TargetVariant {
+                return pose_multiply(pose, this->_tf_flange_tcp_);
+            },
+            [this](const geometry_msgs::Point& point) -> TargetVariant {
+                geometry_msgs::Pose pose;
+                pose.position = point;
+                pose.orientation.w = 1.0; // 单位四元数
+                return pose_multiply(pose, this->_tf_flange_tcp_).position;
+            },
+            [this](const geometry_msgs::Quaternion& quat) -> TargetVariant {
+                geometry_msgs::Pose pose;
+                pose.orientation = quat;
+                return pose_multiply(pose, this->_tf_flange_tcp_).orientation;
+            },
+             [this](const geometry_msgs::PoseStamped& pose_stamped) -> TargetVariant {
+                geometry_msgs::PoseStamped transformed;
+                transformed.header = pose_stamped.header;
+                transformed.pose = pose_multiply(pose_stamped.pose, this->_tf_flange_tcp_);
+                return transformed;
+            }
+            }, flange_target);
+    }
 
 private:
+    /**
+     * @brief 位姿乘法：将两个位姿进行矩阵乘法，得到新的位姿
+     * @param p_left 位姿乘法的左操作数，通常表示当前位姿或目标位姿
+     * @param p_right 位姿乘法的右操作数，通常表示偏移位姿（如 TCP 偏移）
+     * @return 位姿乘法的结果，表示将 p_right 应用到 p_left 上后的新位姿
+     */
+    inline geometry_msgs::Pose pose_multiply(const geometry_msgs::Pose& p_left, const geometry_msgs::Pose& p_right) const {
+        tf2::Transform tf_left, tf_right;
+        tf2::fromMsg(p_left, tf_left);
+        tf2::fromMsg(p_right, tf_right);
+        geometry_msgs::Pose placeholder;
+        return tf2::toMsg(tf_left * tf_right, placeholder);
+    }
+
+    /**
+     * @brief 位姿求逆：计算一个位姿的逆变换，得到从目标位姿到当前位姿的变换
+     * @param pose 输入位姿，通常表示一个偏移位姿（如 TCP 偏移）
+     * @return 位姿的逆变换，表示从目标位姿到当前位姿的变换
+     */
+    inline geometry_msgs::Pose pose_inverse(const geometry_msgs::Pose& pose) const {
+        tf2::Transform tf;
+        tf2::fromMsg(pose, tf);
+        geometry_msgs::Pose placeholder;
+        return tf2::toMsg(tf.inverse(), placeholder);
+    }
+
     std::string _eef_name_;
-    geometry_msgs::Pose _tcp_offset_;
+    geometry_msgs::Pose _tf_flange_tcp_;
 };
+
+// ! ========================= 模 版 方 法 实 现 ========================= ! //
+
+/**
+ * @brief 获取末端执行器接口实例
+ * @tparam InterfaceT 期望的接口类型，例如 JointEefInterface、IoEefInterface、PwmEefInterface 或 ForceFeedbackEefInterface
+ * @param eef 末端执行器实例
+ * @return 如果末端执行器支持该接口，则返回对应接口的指针；否则返回 nullptr
+ */
+template <typename InterfaceT>
+InterfaceT* get_eef_interface(EndEffector* eef) {
+    return eef ? dynamic_cast<InterfaceT*>(eef) : nullptr;
+}
+template <typename InterfaceT>
+const InterfaceT* get_eef_interface(const EndEffector* eef) {
+    return eef ? dynamic_cast<const InterfaceT*>(eef) : nullptr;
+}
+
 
 } /* namespace piper */
 

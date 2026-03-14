@@ -123,6 +123,7 @@ public:
     bool is_planning_or_executing() const;
     ErrorCode cancel_async();
 
+    geometry_msgs::Quaternion rotate_relative_rpy_to_quaternion(const geometry_msgs::Quaternion& q_in, double roll, double pitch, double yaw);
     geometry_msgs::Quaternion rpy_to_quaternion(double roll, double pitch, double yaw);
     geometry_msgs::Pose rpy_to_pose(double roll, double pitch, double yaw, double x, double y, double z);
     template<class T>
