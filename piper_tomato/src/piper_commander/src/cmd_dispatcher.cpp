@@ -68,6 +68,8 @@ ArmCmdResult ArmCmdDispatcher::dispatch(const ArmCmdRequest& req, FeedbackCb cb)
             return handle_get_current_pose(req);
         case ArmCmdType::MOVE_TO_ZERO:
             return handle_move_to_zero(req, cb);
+        case ArmCmdType::MAX:
+            return make_err(ErrorCode::FAILURE, "无效的命令类型：MAX");
     }
 
     return make_err(ErrorCode::FAILURE, "未知的命令类型");

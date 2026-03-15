@@ -18,7 +18,6 @@ add_service_files(
     FILES
     ConfigArm.srv
     QueryArm.srv
-    Stop.srv
 )
 
 add_action_files(

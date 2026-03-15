@@ -11,7 +11,7 @@ namespace piper {
 // ! ========================= 接 口 变 量 / 结 构 体 / 枚 举 声 明 ========================= ! //
 
 /**
- * @brief 机械臂命令类型枚举
+ * @brief 机械臂命令类型枚举（0 ~ MAX-1），每个命令类型对应 ArmCmdDispatcher 中的一个处理函数
  * @param HOME 回到初始位置
  * @param MOVE_JOINTS 关节空间运动
  * @param MOVE_TARGET 末端执行器空间运动
@@ -27,9 +27,10 @@ namespace piper {
  * @param GET_CURRENT_JOINTS 获取当前关节角
  * @param GET_CURRENT_POSE 获取当前位姿
  * @param MOVE_TO_ZERO 重置到零点
+ * @param MAX 枚举值数量，用于验证输入合法性
  */
 enum class ArmCmdType {
-    HOME,
+    HOME = 0,
     MOVE_JOINTS,
     MOVE_TARGET,
     MOVE_TARGET_IN_EEF_FRAME,
@@ -43,7 +44,8 @@ enum class ArmCmdType {
     SET_JOINT_CONSTRAINT,
     GET_CURRENT_JOINTS,
     GET_CURRENT_POSE,
-    MOVE_TO_ZERO
+    MOVE_TO_ZERO,
+    MAX
 };
 
 /**

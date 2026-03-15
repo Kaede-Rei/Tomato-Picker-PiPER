@@ -10,7 +10,7 @@ uint8 ROTATE_END=5
 uint8 MOVE_LINE=6
 uint8 MOVE_BEZIER=7
 uint8 MOVE_DECARTES=8
-uint8 MOVE_TO_ZERO=9
+uint8 MOVE_TO_ZERO=15
 
 # 通用位姿字段
 float64 x

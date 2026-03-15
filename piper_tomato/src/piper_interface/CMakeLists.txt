@@ -5,6 +5,7 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   moveit_core
   moveit_ros_planning_interface
+  piper_controller
   piper_commander
   piper_msgs
   roscpp
@@ -106,9 +107,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES piper_interface
-#  CATKIN_DEPENDS geometry_msgs moveit_core moveit_ros_planning_interface piper_controller piper_msgs_srvs roscpp rospy serial_driver std_msgs std_srvs tf2_geometry_msgs tf2_ros
+ INCLUDE_DIRS include
+ LIBRARIES piper_interface
+ CATKIN_DEPENDS geometry_msgs moveit_core moveit_ros_planning_interface piper_controller piper_commander piper_msgs roscpp rospy std_msgs std_srvs tf2_geometry_msgs tf2_ros
 #  DEPENDS system_lib
 )
 
@@ -124,9 +125,9 @@ include_directories(
 )
 
 ## Declare a C++ library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/piper_interface.cpp
-# )
+add_library(${PROJECT_NAME}_lib
+  src/arm_interface.cpp
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -136,8 +137,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(piper_service src/piper_service.cpp)
-add_executable(piper_action src/piper_action.cpp)
+add_executable(piper_interface src/piper_interface.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -150,10 +150,12 @@ add_executable(piper_action src/piper_action.cpp)
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(piper_service
+target_link_libraries(piper_interface_lib
   ${catkin_LIBRARIES}
 )
-target_link_libraries(piper_action
+
+target_link_libraries(piper_interface
+  piper_interface_lib
   ${catkin_LIBRARIES}
 )
 
