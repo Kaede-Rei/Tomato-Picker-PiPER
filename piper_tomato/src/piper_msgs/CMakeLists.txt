@@ -16,12 +16,14 @@ find_package(catkin REQUIRED COMPONENTS
 
 add_service_files(
     FILES
-    
+    ConfigArm.srv
+    QueryArm.srv
+    Stop.srv
 )
 
 add_action_files(
     FILES
-
+    MoveArm.action
 )
 
 generate_messages(
