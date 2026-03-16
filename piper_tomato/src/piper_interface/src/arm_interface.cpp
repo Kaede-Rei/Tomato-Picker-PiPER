@@ -57,6 +57,55 @@ bool ArmAction::convert_goal_to_request(const piper_msgs::MoveArmGoal& goal, Arm
     return true;
 }
 
+void ArmAction::on_goal() {
+    auto goal = _as_->acceptNewGoal();
+    if(!goal) {
+        piper_msgs::MoveArmResult res;
+        res.success = false;
+        res.message = "空目标";
+        _as_->setAborted(res, res.message);
+
+        return;
+    }
+
+    ArmCmdRequest req;
+    if(!convert_goal_to_request(*goal, req)) {
+        piper_msgs::MoveArmResult res;
+        res.success = false;
+        res.message = "无效的目标";
+        _as_->setAborted(res, res.message);
+
+        return;
+    }
+
+    auto result = _dispatcher_->dispatch(req, [this](const ArmCmdFeedback& fb) {
+        piper_msgs::MoveArmFeedback feedback;
+        feedback.stage = fb.stage;
+        feedback.progress = fb.progress;
+        feedback.message = fb.message;
+        this->_as_->publishFeedback(feedback);
+        });
+
+    piper_msgs::MoveArmResult res;
+    res.success = result.success;
+    res.message = result.message;
+    res.error_code = static_cast<uint8_t>(result.error_code);
+    res.cur_joint = result.current_joints;
+    res.cur_pose = result.current_pose;
+    res.values = result.values;
+
+    if(result.success) _as_->setSucceeded(res);
+    else _as_->setAborted(res, res.message);
+}
+
+void ArmAction::on_preempt() {
+    _dispatcher_->cancel();
+    piper_msgs::MoveArmResult res;
+    res.success = false;
+    res.message = "目标被取消";
+    _as_->setPreempted(res, res.message);
+}
+
 bool SimpleArmAction::convert_goal_to_request(const piper_msgs::SimpleMoveArmGoal& goal, ArmCmdRequest& req) {
     req.type = static_cast<ArmCmdType>(goal.command_type);
     if(!(ArmCmdType::MIN < req.type && req.type < ArmCmdType::MAX)) {
@@ -117,6 +166,59 @@ bool SimpleArmAction::convert_goal_to_request(const piper_msgs::SimpleMoveArmGoa
     }
 
     return true;
+}
+
+void SimpleArmAction::on_goal() {
+    auto goal = _as_->acceptNewGoal();
+    if(!goal) {
+        piper_msgs::SimpleMoveArmResult res;
+        res.success = false;
+        res.message = "空目标";
+        _as_->setAborted(res, res.message);
+
+        return;
+    }
+
+    ArmCmdRequest req;
+    if(!convert_goal_to_request(*goal, req)) {
+        piper_msgs::SimpleMoveArmResult res;
+        res.success = false;
+        res.message = "无效的目标";
+        _as_->setAborted(res, res.message);
+
+        return;
+    }
+
+    auto result = _dispatcher_->dispatch(req);
+
+    piper_msgs::SimpleMoveArmResult res;
+    res.success = result.success;
+    res.message = result.message;
+    res.error_code = static_cast<uint8_t>(result.error_code);
+    res.cur_joint = result.current_joints;
+
+    res.cur_x = result.current_pose.position.x;
+    res.cur_y = result.current_pose.position.y;
+    res.cur_z = result.current_pose.position.z;
+    tf2::Quaternion quat(result.current_pose.orientation.x, result.current_pose.orientation.y, result.current_pose.orientation.z, result.current_pose.orientation.w);
+    double roll, pitch, yaw;
+    tf2::Matrix3x3(quat).getRPY(roll, pitch, yaw);
+    res.cur_roll = roll;
+    res.cur_pitch = pitch;
+    res.cur_yaw = yaw;
+
+    res.values = result.values;
+
+    if(result.success) _as_->setSucceeded(res);
+    else _as_->setAborted(res, res.message);
+}
+
+void SimpleArmAction::on_preempt() {
+    _dispatcher_->cancel();
+    piper_msgs::SimpleMoveArmResult res;
+    res.success = false;
+    res.message = "目标被取消";
+    _as_->setPreempted(res, res.message);
 }
 
 }

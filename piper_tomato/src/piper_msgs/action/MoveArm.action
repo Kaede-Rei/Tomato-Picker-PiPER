@@ -10,7 +10,7 @@ uint8 ROTATE_END=6
 uint8 MOVE_LINE=7
 uint8 MOVE_BEZIER=8
 uint8 MOVE_DECARTES=9
-uint8 MOVE_TO_ZERO=16
+uint8 MOVE_TO_ZERO=15
 
 # 标准位姿字段
 uint8 target_type
@@ -37,16 +37,16 @@ float64[] values
 
 bool success
 string message
-int32 error_code
+uint8 error_code
 
 # 标准位姿字段
 geometry_msgs/Pose cur_pose
-geometry_msgs/Point point
-geometry_msgs/Quaternion quaternion
-geometry_msgs/Pose[] waypoints
 
 # 当前关节角列表
 float64[] cur_joint
+
+# 通用数值参数
+float64[] values
 
 ---
 
@@ -55,12 +55,3 @@ float64[] cur_joint
 string stage
 float64 progress
 string message
-
-# 标准位姿字段
-geometry_msgs/Pose cur_pose
-geometry_msgs/Point point
-geometry_msgs/Quaternion quaternion
-geometry_msgs/Pose[] waypoints
-
-# 当前关节角列表
-float64[] cur_joint

@@ -10,7 +10,7 @@ uint8 ROTATE_END=6
 uint8 MOVE_LINE=7
 uint8 MOVE_BEZIER=8
 uint8 MOVE_DECARTES=9
-uint8 MOVE_TO_ZERO=16
+uint8 MOVE_TO_ZERO=15
 
 # 通用位姿字段
 uint8 target_type
@@ -52,6 +52,9 @@ float64 cur_yaw
 # 当前关节角列表
 float64[] cur_joint
 
+# 通用数值参数
+float64[] values
+
 ---
 
 # === Feedback ===
@@ -59,14 +62,3 @@ float64[] cur_joint
 string stage
 float64 progress
 string message
-
-# 通用位姿字段
-float64 cur_x
-float64 cur_y
-float64 cur_z
-float64 cur_roll
-float64 cur_pitch
-float64 cur_yaw
-
-# 当前关节角列表
-float64[] cur_joint
