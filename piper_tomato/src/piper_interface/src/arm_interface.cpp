@@ -16,6 +16,13 @@ namespace piper {
 
 // ! ========================= 接 口 类 / 函 数 实 现 ========================= ! //
 
+/**
+ * @brief 机械臂运动的 Action 接口
+ * @param nh ROS 节点句柄
+ * @param arm 机械臂控制器
+ * @param dispatcher 机械臂命令调度器
+ * @param action_name Action 名称
+ */
 ArmMoveAction::ArmMoveAction(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::shared_ptr<ArmCmdDispatcher> dispatcher, std::string action_name)
     : _arm_(std::move(arm)), _dispatcher_(std::move(dispatcher)) {
     _as_ = std::make_unique<MoveArmAS>(nh, action_name, false);
@@ -24,6 +31,13 @@ ArmMoveAction::ArmMoveAction(ros::NodeHandle& nh, std::shared_ptr<ArmController>
     _as_->start();
 }
 
+/**
+ * @brief 简化版机械臂运动的 Action 接口
+ * @param nh ROS 节点句柄
+ * @param arm 机械臂控制器
+ * @param dispatcher 机械臂命令调度器
+ * @param action_name Action 名称
+ */
 SimpleArmMoveAction::SimpleArmMoveAction(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::shared_ptr<ArmCmdDispatcher> dispatcher, std::string action_name)
     : _arm_(std::move(arm)), _dispatcher_(std::move(dispatcher)) {
     _as_ = std::make_unique<MoveArmAS>(nh, action_name, false);
@@ -32,11 +46,25 @@ SimpleArmMoveAction::SimpleArmMoveAction(ros::NodeHandle& nh, std::shared_ptr<Ar
     _as_->start();
 }
 
+/**
+ * @brief 机械臂配置的 Service 接口
+ * @param nh ROS节点句柄
+ * @param arm 机械臂控制器
+ * @param dispatcher 机械臂命令调度器
+ * @param service_name Service 名称
+ */
 ArmConfigService::ArmConfigService(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::shared_ptr<ArmCmdDispatcher> dispatcher, std::string service_name)
     : _arm_(std::move(arm)), _dispatcher_(std::move(dispatcher)) {
     _srv_ = std::make_unique<ros::ServiceServer>(nh.advertiseService(service_name, &ArmConfigService::on_request, this));
 }
 
+/**
+ * @brief 机械臂查询的 Service 接口
+ * @param nh ROS节点句柄
+ * @param arm 机械臂控制器
+ * @param dispatcher 机械臂命令调度器
+ * @param service_name Service 名称
+ */
 ArmQueryService::ArmQueryService(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::shared_ptr<ArmCmdDispatcher> dispatcher, std::string service_name)
     : _arm_(std::move(arm)), _dispatcher_(std::move(dispatcher)) {
     _srv_ = std::make_unique<ros::ServiceServer>(nh.advertiseService(service_name, &ArmQueryService::on_request, this));
@@ -44,6 +72,12 @@ ArmQueryService::ArmQueryService(ros::NodeHandle& nh, std::shared_ptr<ArmControl
 
 // ! ========================= 私 有 函 数 实 现 ========================= ! //
 
+/**
+ * @brief 将 MoveArmAction 的 Goal 转换为 ArmCmdRequest
+ * @param goal MoveArmAction 的 Goal
+ * @param req 转换后的 ArmCmdRequest
+ * @return 转换是否成功
+ */
 bool ArmMoveAction::convert_goal_to_request(const piper_msgs::MoveArmGoal& goal, ArmCmdRequest& req) {
     req.type = static_cast<ArmCmdType>(goal.command_type);
     if(!(ArmCmdType::MIN < req.type && req.type < ArmCmdType::MAX)) {
@@ -67,6 +101,9 @@ bool ArmMoveAction::convert_goal_to_request(const piper_msgs::MoveArmGoal& goal,
     return true;
 }
 
+/**
+ * @brief MoveArmAction 的 Goal 回调函数
+ */
 void ArmMoveAction::on_goal() {
     auto goal = _as_->acceptNewGoal();
     if(!goal) {
@@ -108,6 +145,9 @@ void ArmMoveAction::on_goal() {
     else _as_->setAborted(res, res.message);
 }
 
+/**
+ * @brief MoveArmAction 的 Preempt 回调函数
+ */
 void ArmMoveAction::on_preempt() {
     _dispatcher_->cancel();
     piper_msgs::MoveArmResult res;
@@ -116,6 +156,12 @@ void ArmMoveAction::on_preempt() {
     _as_->setPreempted(res, res.message);
 }
 
+/**
+ * @brief 将 SimpleMoveArmAction 的 Goal 转换为 ArmCmdRequest
+ * @param goal SimpleMoveArmAction 的 Goal
+ * @param req 转换后的 ArmCmdRequest
+ * @return 转换是否成功
+ */
 bool SimpleArmMoveAction::convert_goal_to_request(const piper_msgs::SimpleMoveArmGoal& goal, ArmCmdRequest& req) {
     req.type = static_cast<ArmCmdType>(goal.command_type);
     if(!(ArmCmdType::MIN < req.type && req.type < ArmCmdType::MAX)) {
@@ -178,6 +224,9 @@ bool SimpleArmMoveAction::convert_goal_to_request(const piper_msgs::SimpleMoveAr
     return true;
 }
 
+/**
+ * @brief SimpleMoveArmAction 的 Goal 回调函数
+ */
 void SimpleArmMoveAction::on_goal() {
     auto goal = _as_->acceptNewGoal();
     if(!goal) {
@@ -223,6 +272,9 @@ void SimpleArmMoveAction::on_goal() {
     else _as_->setAborted(res, res.message);
 }
 
+/**
+ * @brief SimpleMoveArmAction 的 Preempt 回调函数
+ */
 void SimpleArmMoveAction::on_preempt() {
     _dispatcher_->cancel();
     piper_msgs::SimpleMoveArmResult res;
@@ -231,6 +283,12 @@ void SimpleArmMoveAction::on_preempt() {
     _as_->setPreempted(res, res.message);
 }
 
+/**
+ * @brief 将 ConfigArm Service 的请求转换为 ArmCmdRequest
+ * @param srv_req ConfigArm Service 的请求
+ * @param arm_req 转换后的 ArmCmdRequest
+ * @return 转换是否成功
+ */
 bool ArmConfigService::convert_srvreq_to_armreq(const piper_msgs::ConfigArm::Request& srv_req, ArmCmdRequest& arm_req) {
     arm_req.type = static_cast<ArmCmdType>(srv_req.command_type);
     if(!(ArmCmdType::MIN < arm_req.type && arm_req.type < ArmCmdType::MAX)) {
@@ -253,6 +311,12 @@ bool ArmConfigService::convert_srvreq_to_armreq(const piper_msgs::ConfigArm::Req
     return true;
 }
 
+/**
+ * @brief ConfigArm Service 的请求回调函数
+ * @param req ConfigArm Service 的请求
+ * @param res ConfigArm Service 的响应
+ * @return 是否成功处理请求
+ */
 bool ArmConfigService::on_request(piper_msgs::ConfigArm::Request& req, piper_msgs::ConfigArm::Response& res) {
     if(!_arm_ || !_dispatcher_) {
         res.success = false;
@@ -275,6 +339,12 @@ bool ArmConfigService::on_request(piper_msgs::ConfigArm::Request& req, piper_msg
     return true;
 }
 
+/**
+ * @brief 将 QueryArm Service 的请求转换为 ArmCmdRequest
+ * @param srv_req QueryArm Service 的请求
+ * @param arm_req 转换后的 ArmCmdRequest
+ * @return 转换是否成功
+ */
 bool ArmQueryService::convert_srvreq_to_armreq(const piper_msgs::QueryArm::Request& srv_req, ArmCmdRequest& arm_req) {
     arm_req.type = static_cast<ArmCmdType>(srv_req.command_type);
     if(!(ArmCmdType::MIN < arm_req.type && arm_req.type < ArmCmdType::MAX)) {
@@ -287,6 +357,12 @@ bool ArmQueryService::convert_srvreq_to_armreq(const piper_msgs::QueryArm::Reque
     return true;
 }
 
+/**
+ * @brief QueryArm Service 的请求回调函数
+ * @param req QueryArm Service 的请求
+ * @param res QueryArm Service 的响应
+ * @return 是否成功处理请求
+ */
 bool ArmQueryService::on_request(piper_msgs::QueryArm::Request& req, piper_msgs::QueryArm::Response& res) {
     if(!_arm_ || !_dispatcher_) {
         res.success = false;

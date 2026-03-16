@@ -18,6 +18,9 @@ namespace piper {
 
 // ! ========================= 接 口 类 / 函 数 声 明 ========================= ! //
 
+/**
+ * @brief 机械臂运动的Action接口
+ */
 class ArmMoveAction {
 public:
     using MoveArmAS = actionlib::SimpleActionServer<piper_msgs::MoveArmAction>;
@@ -40,6 +43,9 @@ private:
     std::shared_ptr<ArmCmdDispatcher> _dispatcher_;
 };
 
+/**
+ * @brief 简化版机械臂运动的Action接口
+ */
 class SimpleArmMoveAction {
 public:
     using MoveArmAS = actionlib::SimpleActionServer<piper_msgs::SimpleMoveArmAction>;
@@ -62,6 +68,9 @@ private:
     std::shared_ptr<ArmCmdDispatcher> _dispatcher_;
 };
 
+/**
+ * @brief 机械臂配置的Service接口
+ */
 class ArmConfigService {
 public:
     ArmConfigService(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::shared_ptr<ArmCmdDispatcher> dispatcher, std::string service_name);
@@ -82,6 +91,9 @@ private:
     std::shared_ptr<ArmCmdDispatcher> _dispatcher_;
 };
 
+/**
+ * @brief 机械臂查询的Service接口
+ */
 class ArmQueryService {
 public:
     ArmQueryService(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::shared_ptr<ArmCmdDispatcher> dispatcher, std::string service_name);
