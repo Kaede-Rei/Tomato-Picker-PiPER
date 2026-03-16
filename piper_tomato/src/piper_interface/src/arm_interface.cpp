@@ -23,9 +23,8 @@ namespace piper {
  * @param dispatcher 机械臂命令调度器
  * @param action_name Action 名称
  */
-ArmMoveAction::ArmMoveAction(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::string action_name)
-    : _arm_(std::move(arm)) {
-    _dispatcher_ = std::make_shared<ArmCmdDispatcher>(_arm_);
+ArmMoveAction::ArmMoveAction(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::shared_ptr<ArmCmdDispatcher> dispatcher, std::string action_name)
+    : _arm_(std::move(arm)), _dispatcher_(std::move(dispatcher)) {
     _as_ = std::make_unique<MoveArmAS>(nh, action_name, false);
     _as_->registerGoalCallback(boost::bind(&ArmMoveAction::on_goal, this));
     _as_->registerPreemptCallback(boost::bind(&ArmMoveAction::on_preempt, this));
@@ -39,9 +38,8 @@ ArmMoveAction::ArmMoveAction(ros::NodeHandle& nh, std::shared_ptr<ArmController>
  * @param dispatcher 机械臂命令调度器
  * @param action_name Action 名称
  */
-SimpleArmMoveAction::SimpleArmMoveAction(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::string action_name)
-    : _arm_(std::move(arm)) {
-    _dispatcher_ = std::make_shared<ArmCmdDispatcher>(_arm_);
+SimpleArmMoveAction::SimpleArmMoveAction(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::shared_ptr<ArmCmdDispatcher> dispatcher, std::string action_name)
+    : _arm_(std::move(arm)), _dispatcher_(std::move(dispatcher)) {
     _as_ = std::make_unique<MoveArmAS>(nh, action_name, false);
     _as_->registerGoalCallback(boost::bind(&SimpleArmMoveAction::on_goal, this));
     _as_->registerPreemptCallback(boost::bind(&SimpleArmMoveAction::on_preempt, this));
@@ -55,9 +53,8 @@ SimpleArmMoveAction::SimpleArmMoveAction(ros::NodeHandle& nh, std::shared_ptr<Ar
  * @param dispatcher 机械臂命令调度器
  * @param service_name Service 名称
  */
-ArmConfigService::ArmConfigService(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::string service_name)
-    : _arm_(std::move(arm)) {
-    _dispatcher_ = std::make_shared<ArmCmdDispatcher>(_arm_);
+ArmConfigService::ArmConfigService(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::shared_ptr<ArmCmdDispatcher> dispatcher, std::string service_name)
+    : _arm_(std::move(arm)), _dispatcher_(std::move(dispatcher)) {
     _srv_ = std::make_unique<ros::ServiceServer>(nh.advertiseService(service_name, &ArmConfigService::on_request, this));
 }
 
@@ -68,9 +65,8 @@ ArmConfigService::ArmConfigService(ros::NodeHandle& nh, std::shared_ptr<ArmContr
  * @param dispatcher 机械臂命令调度器
  * @param service_name Service 名称
  */
-ArmQueryService::ArmQueryService(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::string service_name)
-    : _arm_(std::move(arm)) {
-    _dispatcher_ = std::make_shared<ArmCmdDispatcher>(_arm_);
+ArmQueryService::ArmQueryService(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::shared_ptr<ArmCmdDispatcher> dispatcher, std::string service_name)
+    : _arm_(std::move(arm)), _dispatcher_(std::move(dispatcher)) {
     _srv_ = std::make_unique<ros::ServiceServer>(nh.advertiseService(service_name, &ArmQueryService::on_request, this));
 }
 

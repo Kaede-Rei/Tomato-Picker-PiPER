@@ -1,0 +1,34 @@
+start:
+  arm_group_name: "arm"
+  arm_move_action:
+    enabled: true
+    name: "move_arm"
+  simple_arm_move_action:
+    enabled: true
+    name: "simple_move_arm"
+  arm_config_service:
+    enabled: true
+    name: "arm_config"
+  arm_query_service:
+    enabled: true
+    name: "arm_query"
+
+decartes:
+  vel_scale: 0.1
+  acc_scale: 0.1
+  eef_step: 0.01
+  jump_threshold: 0.0
+  min_success_rate: 0.8
+
+motion_planning:
+  planning_time: 5.0
+  planning_attempts: 10
+  max_velocity_scaling_factor: 0.1
+  max_acceleration_scaling_factor: 0.1
+  planner_id: "RRTConnect"
+
+reachable_pose_search:
+  step_deg: 5.0
+  radius_deg: 60.0
+
+

@@ -39,6 +39,7 @@ private:
 
 private:
     std::shared_ptr<ArmController> _arm_;
+    std::shared_ptr<ArmCmdDispatcher> _dispatcher_;
     std::vector<std::unique_ptr<ROSModuleInterface>> _modules_;
 };
 
@@ -47,7 +48,7 @@ private:
 template<typename Module, typename... Args>
 void ROSInterface::add_interface(const ROSInterfaceSwitch& interface, Args&&... args) {
     if(interface.enable && !interface.name.empty()) {
-        _modules_.push_back(std::make_unique<Module>(std::forward<Args>(args)...));
+        _modules_.push_back(std::make_unique<Module>(std::forward<Args>(args)..., interface.name));
         ROS_INFO("初始化接口: %s", interface.name.c_str());
     }
 }

@@ -25,7 +25,7 @@ namespace piper {
 class ArmMoveAction : public ROSModuleInterface {
 public:
     using MoveArmAS = actionlib::SimpleActionServer<piper_msgs::MoveArmAction>;
-    ArmMoveAction(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::string action_name);
+    ArmMoveAction(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::shared_ptr<ArmCmdDispatcher> dispatcher, std::string action_name);
     ~ArmMoveAction() = default;
 
     ArmMoveAction(const ArmMoveAction&) = delete;
@@ -50,7 +50,7 @@ private:
 class SimpleArmMoveAction : public ROSModuleInterface {
 public:
     using MoveArmAS = actionlib::SimpleActionServer<piper_msgs::SimpleMoveArmAction>;
-    SimpleArmMoveAction(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::string action_name);
+    SimpleArmMoveAction(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::shared_ptr<ArmCmdDispatcher> dispatcher, std::string action_name);
     ~SimpleArmMoveAction() = default;
 
     SimpleArmMoveAction(const SimpleArmMoveAction&) = delete;
@@ -74,7 +74,7 @@ private:
  */
 class ArmConfigService : public ROSModuleInterface {
 public:
-    ArmConfigService(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::string service_name);
+    ArmConfigService(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::shared_ptr<ArmCmdDispatcher> dispatcher, std::string service_name);
     ~ArmConfigService() = default;
 
     ArmConfigService(const ArmConfigService&) = delete;
@@ -97,7 +97,7 @@ private:
  */
 class ArmQueryService : public ROSModuleInterface {
 public:
-    ArmQueryService(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::string service_name);
+    ArmQueryService(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::shared_ptr<ArmCmdDispatcher> dispatcher, std::string service_name);
     ~ArmQueryService() = default;
 
     ArmQueryService(const ArmQueryService&) = delete;
