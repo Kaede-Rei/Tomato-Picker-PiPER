@@ -3,6 +3,7 @@
 
 #include <actionlib/server/simple_action_server.h>
 
+#include "piper_interface/interface_module.hpp"
 #include "piper_controller/arm_controller.hpp"
 #include "piper_commander/cmd_dispatcher.hpp"
 #include "piper_msgs/MoveArmAction.h"
@@ -21,10 +22,10 @@ namespace piper {
 /**
  * @brief 机械臂运动的Action接口
  */
-class ArmMoveAction {
+class ArmMoveAction : public ROSModuleInterface {
 public:
     using MoveArmAS = actionlib::SimpleActionServer<piper_msgs::MoveArmAction>;
-    ArmMoveAction(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::shared_ptr<ArmCmdDispatcher> dispatcher, std::string action_name);
+    ArmMoveAction(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::string action_name);
     ~ArmMoveAction() = default;
 
     ArmMoveAction(const ArmMoveAction&) = delete;
@@ -46,10 +47,10 @@ private:
 /**
  * @brief 简化版机械臂运动的Action接口
  */
-class SimpleArmMoveAction {
+class SimpleArmMoveAction : public ROSModuleInterface {
 public:
     using MoveArmAS = actionlib::SimpleActionServer<piper_msgs::SimpleMoveArmAction>;
-    SimpleArmMoveAction(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::shared_ptr<ArmCmdDispatcher> dispatcher, std::string action_name);
+    SimpleArmMoveAction(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::string action_name);
     ~SimpleArmMoveAction() = default;
 
     SimpleArmMoveAction(const SimpleArmMoveAction&) = delete;
@@ -71,9 +72,9 @@ private:
 /**
  * @brief 机械臂配置的Service接口
  */
-class ArmConfigService {
+class ArmConfigService : public ROSModuleInterface {
 public:
-    ArmConfigService(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::shared_ptr<ArmCmdDispatcher> dispatcher, std::string service_name);
+    ArmConfigService(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::string service_name);
     ~ArmConfigService() = default;
 
     ArmConfigService(const ArmConfigService&) = delete;
@@ -94,9 +95,9 @@ private:
 /**
  * @brief 机械臂查询的Service接口
  */
-class ArmQueryService {
+class ArmQueryService : public ROSModuleInterface {
 public:
-    ArmQueryService(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::shared_ptr<ArmCmdDispatcher> dispatcher, std::string service_name);
+    ArmQueryService(ros::NodeHandle& nh, std::shared_ptr<ArmController> arm, std::string service_name);
     ~ArmQueryService() = default;
 
     ArmQueryService(const ArmQueryService&) = delete;

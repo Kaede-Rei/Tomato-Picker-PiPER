@@ -109,7 +109,8 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES piper_interface
- CATKIN_DEPENDS geometry_msgs moveit_core moveit_ros_planning_interface piper_controller piper_commander piper_msgs roscpp rospy std_msgs std_srvs tf2_geometry_msgs tf2_ros
+#  CATKIN_DEPENDS geometry_msgs moveit_core moveit_ros_planning_interface piper_controller piper_commander piper_msgs roscpp rospy std_msgs std_srvs tf2_geometry_msgs tf2_ros
+ CATKIN_DEPENDS geometry_msgs piper_controller piper_commander piper_msgs roscpp std_msgs std_srvs
 #  DEPENDS system_lib
 )
 
@@ -125,8 +126,9 @@ include_directories(
 )
 
 ## Declare a C++ library
-add_library(${PROJECT_NAME}_lib
+add_library(${PROJECT_NAME}
   src/arm_interface.cpp
+  src/piper_interface.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -137,7 +139,7 @@ add_library(${PROJECT_NAME}_lib
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(piper_interface src/piper_interface.cpp)
+add_executable(piper_start src/piper_start.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -150,12 +152,12 @@ add_executable(piper_interface src/piper_interface.cpp)
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(piper_interface_lib
+target_link_libraries(piper_interface
   ${catkin_LIBRARIES}
 )
 
-target_link_libraries(piper_interface
-  piper_interface_lib
+target_link_libraries(piper_start
+  piper_interface
   ${catkin_LIBRARIES}
 )
 
