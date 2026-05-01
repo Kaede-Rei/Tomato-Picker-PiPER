@@ -79,7 +79,7 @@ def rotate_intrinsics_180(K: np.ndarray, width: int, height: int) -> np.ndarray:
 
 class PiperOrbbec:
     def __init__(self):
-        rospy.init_node("piper_orbbec")
+        rospy.init_node("piper_orbbec_wrist")
         self.bridge = CvBridge()
 
         self.color_width = rospy.get_param("~color_width", 1280)
@@ -124,27 +124,27 @@ class PiperOrbbec:
         self.align_filter = None
 
         self.color_pub = rospy.Publisher(
-            "/piper/camera/orbbec/color/image_raw", Image, queue_size=1
+            "/piper/camera/wrist/color/image_raw", Image, queue_size=1
         )
         self.color_info_pub = rospy.Publisher(
-            "/piper/camera/orbbec/color/camera_info", CameraInfo, queue_size=1
+            "/piper/camera/wrist/color/camera_info", CameraInfo, queue_size=1
         )
         self.depth_raw_pub = rospy.Publisher(
-            "/piper/camera/orbbec/depth/image_raw", Image, queue_size=1
+            "/piper/camera/wrist/depth/image_raw", Image, queue_size=1
         )
         self.depth_raw_info_pub = rospy.Publisher(
-            "/piper/camera/orbbec/depth/camera_info", CameraInfo, queue_size=1
+            "/piper/camera/wrist/depth/camera_info", CameraInfo, queue_size=1
         )
         self.depth_registered_pub = rospy.Publisher(
-            "/piper/camera/orbbec/depth_registered/image_raw", Image, queue_size=1
+            "/piper/camera/wrist/depth_registered/image_raw", Image, queue_size=1
         )
         self.depth_registered_info_pub = rospy.Publisher(
-            "/piper/camera/orbbec/depth_registered/camera_info",
+            "/piper/camera/wrist/depth_registered/camera_info",
             CameraInfo,
             queue_size=1,
         )
         self.lrm_pub = rospy.Publisher(
-            "/piper/camera/orbbec/lrm_distance", Float32, queue_size=1
+            "/piper/camera/wrist/lrm_distance", Float32, queue_size=1
         )
 
         self.color_model_source = "unknown"

@@ -65,13 +65,13 @@ roslaunch piper_interface piper_start.launch
 
 | 名称 | 类型 | 说明 |
 |---|---|---|
-| `/piper/camera/orbbec/color/image_raw` | `sensor_msgs/Image` | 彩色图 |
-| `/piper/camera/orbbec/color/camera_info` | `sensor_msgs/CameraInfo` | 彩色相机内参 |
-| `/piper/camera/orbbec/depth/image_raw` | `sensor_msgs/Image` | 原始深度图，`32FC1`，单位 m |
-| `/piper/camera/orbbec/depth/camera_info` | `sensor_msgs/CameraInfo` | 原始深度内参 |
-| `/piper/camera/orbbec/depth_registered/image_raw` | `sensor_msgs/Image` | 对齐到彩色图的深度图，`32FC1`，单位 m |
-| `/piper/camera/orbbec/depth_registered/camera_info` | `sensor_msgs/CameraInfo` | 对齐深度内参 |
-| `/piper/camera/orbbec/lrm_distance` | `std_msgs/Float32` | LRM 单点测距，单位 m |
+| `/piper/camera/wrist/color/image_raw` | `sensor_msgs/Image` | 彩色图 |
+| `/piper/camera/wrist/color/camera_info` | `sensor_msgs/CameraInfo` | 彩色相机内参 |
+| `/piper/camera/wrist/depth/image_raw` | `sensor_msgs/Image` | 原始深度图，`32FC1`，单位 m |
+| `/piper/camera/wrist/depth/camera_info` | `sensor_msgs/CameraInfo` | 原始深度内参 |
+| `/piper/camera/wrist/depth_registered/image_raw` | `sensor_msgs/Image` | 对齐到彩色图的深度图，`32FC1`，单位 m |
+| `/piper/camera/wrist/depth_registered/camera_info` | `sensor_msgs/CameraInfo` | 对齐深度内参 |
+| `/piper/camera/wrist/lrm_distance` | `std_msgs/Float32` | LRM 单点测距，单位 m |
 | `/piper/perception/cloud/raw` | `sensor_msgs/PointCloud2` | 相机系原始点云 |
 | `/piper/perception/cloud/base` | `sensor_msgs/PointCloud2` | 转到 `base_link` 的点云 |
 | `/piper/perception/cloud/filtered` | `sensor_msgs/PointCloud2` | 工作空间裁剪和滤波后的点云 |
@@ -507,8 +507,8 @@ rosservice call /piper/perception/set_octomap_enabled "{enabled: true, clear_oct
 `depth_registered` 是对齐到彩色图的深度图，推荐作为点云输入
 
 ```text
-/piper/camera/orbbec/depth_registered/image_raw
-/piper/camera/orbbec/depth_registered/camera_info
+/piper/camera/wrist/depth_registered/image_raw
+/piper/camera/wrist/depth_registered/camera_info
 ```
 
 编码：
@@ -523,7 +523,7 @@ rosservice call /piper/perception/set_octomap_enabled "{enabled: true, clear_oct
 LRM 发布：
 
 ```text
-/piper/camera/orbbec/lrm_distance
+/piper/camera/wrist/lrm_distance
 ```
 
 类型：
@@ -560,9 +560,9 @@ color + depth_registered + camera_info
 
 ```yaml
 topics:
-  color_image: /piper/camera/orbbec/color/image_raw
-  depth_image: /piper/camera/orbbec/depth_registered/image_raw
-  depth_info: /piper/camera/orbbec/depth_registered/camera_info
+  color_image: /piper/camera/wrist/color/image_raw
+  depth_image: /piper/camera/wrist/depth_registered/image_raw
+  depth_info: /piper/camera/wrist/depth_registered/camera_info
 
 target_frame: base_link
 pixel_stride: 4

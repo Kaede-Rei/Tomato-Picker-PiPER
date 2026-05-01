@@ -215,13 +215,13 @@ GUI 典型流程：
 
 | Topic | Type | 说明 |
 |---|---|---|
-| `/piper/camera/orbbec/color/image_raw` | `sensor_msgs/Image` | 彩色图 |
-| `/piper/camera/orbbec/color/camera_info` | `sensor_msgs/CameraInfo` | 彩色相机内参 |
-| `/piper/camera/orbbec/depth/image_raw` | `sensor_msgs/Image` | 原始深度，`32FC1`，单位 m |
-| `/piper/camera/orbbec/depth/camera_info` | `sensor_msgs/CameraInfo` | 原始深度内参 |
-| `/piper/camera/orbbec/depth_registered/image_raw` | `sensor_msgs/Image` | 对齐到彩色图的深度，`32FC1`，单位 m |
-| `/piper/camera/orbbec/depth_registered/camera_info` | `sensor_msgs/CameraInfo` | 对齐深度内参 |
-| `/piper/camera/orbbec/lrm_distance` | `std_msgs/Float32` | LRM 单点测距，单位 m |
+| `/piper/camera/wrist/color/image_raw` | `sensor_msgs/Image` | 彩色图 |
+| `/piper/camera/wrist/color/camera_info` | `sensor_msgs/CameraInfo` | 彩色相机内参 |
+| `/piper/camera/wrist/depth/image_raw` | `sensor_msgs/Image` | 原始深度，`32FC1`，单位 m |
+| `/piper/camera/wrist/depth/camera_info` | `sensor_msgs/CameraInfo` | 原始深度内参 |
+| `/piper/camera/wrist/depth_registered/image_raw` | `sensor_msgs/Image` | 对齐到彩色图的深度，`32FC1`，单位 m |
+| `/piper/camera/wrist/depth_registered/camera_info` | `sensor_msgs/CameraInfo` | 对齐深度内参 |
+| `/piper/camera/wrist/lrm_distance` | `std_msgs/Float32` | LRM 单点测距，单位 m |
 
 说明：
 
@@ -357,8 +357,8 @@ values: []"
 
 ```bash
 rostopic list | grep /piper/camera/orbbec
-rostopic hz /piper/camera/orbbec/depth_registered/image_raw
-rostopic echo -n 1 /piper/camera/orbbec/lrm_distance
+rostopic hz /piper/camera/wrist/depth_registered/image_raw
+rostopic echo -n 1 /piper/camera/wrist/lrm_distance
 ```
 
 ### 检查点云
@@ -437,7 +437,7 @@ rosrun tf tf_echo link6 eef_camera_color_optical_frame
 ### 点云没有发布
 
 ```bash
-rostopic echo -n 1 /piper/camera/orbbec/depth_registered/image_raw/header
+rostopic echo -n 1 /piper/camera/wrist/depth_registered/image_raw/header
 rostopic hz /piper/perception/cloud/raw
 ```
 

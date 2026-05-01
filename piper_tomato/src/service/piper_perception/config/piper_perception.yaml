@@ -1,7 +1,7 @@
 topics:
-  color_image: /piper/camera/orbbec/color/image_raw
-  depth_image: /piper/camera/orbbec/depth_registered/image_raw
-  depth_info: /piper/camera/orbbec/depth_registered/camera_info
+  color_image: /piper/camera/wrist/color/image_raw
+  depth_image: /piper/camera/wrist/depth_registered/image_raw
+  depth_info: /piper/camera/wrist/depth_registered/camera_info
 
 target_frame: base_link
 

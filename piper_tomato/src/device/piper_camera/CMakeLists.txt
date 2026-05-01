@@ -98,7 +98,7 @@ endforeach()
 # ========================= Python 脚本安装(可选) ========================= #
 set(PYTHON_SCRIPTS
   # scripts/demo_node.py
-  scripts/piper_orbbec.py
+  scripts/piper_orbbec_wrist.py
 )
 
 if(PYTHON_SCRIPTS)

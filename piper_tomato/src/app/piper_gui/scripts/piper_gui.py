@@ -86,17 +86,17 @@ class RosConfig:
     action_wait_sec: float = 5.0
     result_wait_sec: float = 10.0
     tf_wait_sec: float = 0.2
-    camera_color_topic: str = "/piper/camera/orbbec/color/image_raw"
-    camera_color_info_topic: str = "/piper/camera/orbbec/color/camera_info"
-    camera_depth_raw_topic: str = "/piper/camera/orbbec/depth/image_raw"
-    camera_depth_raw_info_topic: str = "/piper/camera/orbbec/depth/camera_info"
+    camera_color_topic: str = "/piper/camera/wrist/color/image_raw"
+    camera_color_info_topic: str = "/piper/camera/wrist/color/camera_info"
+    camera_depth_raw_topic: str = "/piper/camera/wrist/depth/image_raw"
+    camera_depth_raw_info_topic: str = "/piper/camera/wrist/depth/camera_info"
     camera_depth_registered_topic: str = (
-        "/piper/camera/orbbec/depth_registered/image_raw"
+        "/piper/camera/wrist/depth_registered/image_raw"
     )
     camera_depth_registered_info_topic: str = (
-        "/piper/camera/orbbec/depth_registered/camera_info"
+        "/piper/camera/wrist/depth_registered/camera_info"
     )
-    camera_lrm_topic: str = "/piper/camera/orbbec/lrm_distance"
+    camera_lrm_topic: str = "/piper/camera/wrist/lrm_distance"
 
 
 @dataclass(frozen=True)
