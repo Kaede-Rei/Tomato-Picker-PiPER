@@ -114,6 +114,7 @@ class OBCameraNodeDriver {
   ros::ServiceServer reboot_service_srv_;
   static backward::SignalHandling sh;
   bool enable_hardware_reset_ = false;
+  bool reboot_on_shutdown_ = false;
   bool hardware_reset_done_ = false;
   std::string extension_path_;
   std::string uvc_backend_;

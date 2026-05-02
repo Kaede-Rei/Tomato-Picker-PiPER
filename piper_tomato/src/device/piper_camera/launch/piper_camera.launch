@@ -73,6 +73,7 @@
             <arg name="enable_colored_point_cloud" value="false"/>
             <arg name="enable_sync_output_accel_gyro" value="false"/>
             <arg name="retry_on_usb3_detection_failure" value="true"/>
+            <arg name="reboot_on_shutdown" value="true"/>
             <arg name="color_width" value="1280"/>
             <arg name="color_height" value="720"/>
             <arg name="color_fps" value="30"/>
@@ -97,6 +98,7 @@
             <arg name="enable_colored_point_cloud" value="false"/>
             <arg name="enable_sync_output_accel_gyro" value="false"/>
             <arg name="retry_on_usb3_detection_failure" value="true"/>
+            <arg name="reboot_on_shutdown" value="true"/>
             <arg name="color_width" value="1280"/>
             <arg name="color_height" value="720"/>
             <arg name="color_fps" value="30"/>

@@ -100,7 +100,25 @@ def _usb_uid_from_com_alias(alias_name: str) -> str:
     if not match:
         return ""
     token = match.group(1)
-    return token if "-" in token else f"1-{token}"
+    if "-" not in token:
+        token = f"1-{token}"
+
+    sys_usb_devices = "/sys/bus/usb/devices"
+    try:
+        for device_name in os.listdir(sys_usb_devices):
+            if ":" in device_name or not device_name.endswith(token):
+                continue
+            vendor_path = os.path.join(sys_usb_devices, device_name, "idVendor")
+            try:
+                with open(vendor_path, "r", encoding="utf-8") as vendor_file:
+                    if vendor_file.read().strip() == "2bc5":
+                        return device_name
+            except OSError:
+                pass
+    except OSError:
+        pass
+
+    return token
 
 
 def resolve_usb_port_selector(selector: str) -> str:

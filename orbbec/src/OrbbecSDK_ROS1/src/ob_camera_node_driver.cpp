@@ -88,10 +88,30 @@ std::string usbUidFromComAliasName(const std::string &alias_name) {
   }
 
   auto token = match[1].str();
-  if (token.find('-') != std::string::npos) {
-    return token;
+  if (token.find('-') == std::string::npos) {
+    token = "1-" + token;
   }
-  return "1-" + token;
+
+  const boost::filesystem::path usb_devices("/sys/bus/usb/devices");
+  if (boost::filesystem::exists(usb_devices)) {
+    for (const auto &entry : boost::filesystem::directory_iterator(usb_devices)) {
+      const auto device_name = entry.path().filename().string();
+      if (device_name.find(':') != std::string::npos ||
+          device_name.size() < token.size() ||
+          device_name.compare(device_name.size() - token.size(), token.size(), token) != 0) {
+        continue;
+      }
+
+      std::ifstream vendor_file((entry.path() / "idVendor").string());
+      std::string vendor;
+      vendor_file >> vendor;
+      if (vendor == "2bc5") {
+        return device_name;
+      }
+    }
+  }
+
+  return token;
 }
 
 ros::console::levels::Level rosLogSeverityFromString(const std::string &log_level) {
@@ -164,13 +184,55 @@ OBCameraNodeDriver::~OBCameraNodeDriver() {
   if (check_connection_timer_) {
     check_connection_timer_.stop();
   }
+  if (device_status_timer_) {
+    device_status_timer_.stop();
+  }
+
+  // Unregister device changed callback before destroying resources so SDK callbacks cannot
+  // recreate device/node objects while shutdown is cleaning them up.
+  if (ctx_ && device_changed_callback_id_ != INVALID_CALLBACK_ID) {
+    try {
+      ctx_->unregisterDeviceChangedCallback(device_changed_callback_id_);
+      device_changed_callback_id_ = INVALID_CALLBACK_ID;
+    } catch (...) {
+      ROS_WARN_STREAM("Exception during device changed callback unregister in destructor");
+    }
+  }
+
+  reset_device_cv_.notify_all();
 
   // Ensure proper cleanup of camera node resources
-  if (ob_camera_node_) {
-    ob_camera_node_->clean();
-    ob_camera_node_.reset();
-    // Allow time for underlying resources to be released
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  {
+    std::lock_guard<decltype(device_lock_)> lock(device_lock_);
+    if (ob_camera_node_) {
+      ob_camera_node_->clean();
+      ob_camera_node_.reset();
+      // Allow time for underlying resources to be released
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    if (ob_lidar_node_) {
+      ob_lidar_node_->clean();
+      ob_lidar_node_.reset();
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    if (reboot_on_shutdown_ && device_) {
+      try {
+        ROS_WARN_STREAM("Rebooting device on shutdown to force USB re-enumeration");
+        device_->reboot();
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+      } catch (const ob::Error &e) {
+        ROS_WARN_STREAM("Failed to reboot device on shutdown: "
+                        << orbbec_camera::formatObErrorWithStatus(e));
+      } catch (const std::exception &e) {
+        ROS_WARN_STREAM("Failed to reboot device on shutdown: " << e.what());
+      } catch (...) {
+        ROS_WARN_STREAM("Failed to reboot device on shutdown");
+      }
+    }
+    device_.reset();
+    device_info_.reset();
+    device_connected_ = false;
+    device_uid_.clear();
   }
 
   // Clear global publisher cache on process termination
@@ -184,18 +246,21 @@ OBCameraNodeDriver::~OBCameraNodeDriver() {
     query_thread_->join();
   }
 
+  ctx_.reset();
+
+  orb_device_lock_ = nullptr;
+  pthread_mutexattr_destroy(&orb_device_lock_attr_);
+  if (orb_device_lock_shm_addr_ && orb_device_lock_shm_addr_ != MAP_FAILED) {
+    munmap(orb_device_lock_shm_addr_, sizeof(pthread_mutex_t));
+    orb_device_lock_shm_addr_ = nullptr;
+  }
+  if (orb_device_lock_shm_fd_ >= 0) {
+    close(orb_device_lock_shm_fd_);
+    orb_device_lock_shm_fd_ = -1;
+  }
+
   // Final memory cleanup
   malloc_trim(0);
-
-  // Unregister device changed callback before destroying context
-  if (ctx_ && device_changed_callback_id_ != INVALID_CALLBACK_ID) {
-    try {
-      ctx_->unregisterDeviceChangedCallback(device_changed_callback_id_);
-      device_changed_callback_id_ = INVALID_CALLBACK_ID;
-    } catch (...) {
-      ROS_WARN_STREAM("Exception during device changed callback unregister in destructor");
-    }
-  }
 }
 
 void OBCameraNodeDriver::init() {
@@ -285,6 +350,7 @@ void OBCameraNodeDriver::init() {
   ip_address_ = nh_private_.param<std::string>("ip_address", "");
   port_ = nh_private_.param<int>("port", 0);
   enable_hardware_reset_ = nh_private_.param<bool>("enable_hardware_reset", false);
+  reboot_on_shutdown_ = nh_private_.param<bool>("reboot_on_shutdown", false);
   uvc_backend_ = nh_private_.param<std::string>("uvc_backend", "libuvc");
   preset_firmware_path_ = nh_private_.param<std::string>("preset_firmware_path", "");
   upgrade_firmware_ = nh_private_.param<std::string>("upgrade_firmware", "");
