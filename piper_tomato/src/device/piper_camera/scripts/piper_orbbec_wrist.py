@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import math
+import os
+import re
 from typing import Any, Dict, List, Optional
 
 import cv2
@@ -20,6 +22,7 @@ from pyorbbecsdk import (
     OBPropertyID,
     OBSensorType,
     Config,
+    Context,
     Pipeline,
     VideoFrame,
 )
@@ -77,10 +80,66 @@ def rotate_intrinsics_180(K: np.ndarray, width: int, height: int) -> np.ndarray:
     return rotated
 
 
+def _usb_uid_from_video_device(video_device: str) -> str:
+    video_name = os.path.basename(os.path.realpath(video_device))
+    if not video_name.startswith("video"):
+        return ""
+
+    sys_device = f"/sys/class/video4linux/{video_name}/device"
+    try:
+        resolved = os.path.realpath(sys_device)
+    except OSError:
+        return ""
+
+    matches = re.findall(r"([0-9]+-[0-9]+(?:\.[0-9]+)*)(?::[0-9.]+)?", resolved)
+    return matches[-1] if matches else ""
+
+
+def _usb_uid_from_com_alias(alias_name: str) -> str:
+    match = re.fullmatch(r"com-([0-9][0-9.-]*)-video", alias_name)
+    if not match:
+        return ""
+    token = match.group(1)
+    return token if "-" in token else f"1-{token}"
+
+
+def resolve_usb_port_selector(selector: str) -> str:
+    value = str(selector or "").strip()
+    if not value:
+        return ""
+
+    video_match = re.fullmatch(r"(?:/dev/)?video([0-9]+)", value)
+    if video_match:
+        uid = _usb_uid_from_video_device(f"/dev/video{video_match.group(1)}")
+        return uid or value
+
+    if re.fullmatch(r"[0-9]+", value):
+        uid = _usb_uid_from_video_device(f"/dev/video{value}")
+        return uid or value
+
+    if value.startswith("/dev/"):
+        uid = _usb_uid_from_video_device(value)
+        if uid:
+            return uid
+        alias_uid = _usb_uid_from_com_alias(os.path.basename(value))
+        if alias_uid:
+            return alias_uid
+
+    return value
+
+
 class PiperOrbbec:
     def __init__(self):
         rospy.init_node("piper_orbbec_wrist")
         self.bridge = CvBridge()
+
+        self.camera_role = rospy.get_param("~camera_role", "wrist")
+        self.output_ns = self._normalize_topic_ns(
+            rospy.get_param("~output_ns", "/piper/camera/wrist")
+        )
+        self.usb_port = rospy.get_param("~usb_port", "")
+        self.camera_index = rospy.get_param("~camera_index", "")
+        self.serial_number = rospy.get_param("~serial_number", "")
 
         self.color_width = rospy.get_param("~color_width", 1280)
         self.color_height = rospy.get_param("~color_height", 720)
@@ -124,31 +183,41 @@ class PiperOrbbec:
         self.align_filter = None
 
         self.color_pub = rospy.Publisher(
-            "/piper/camera/wrist/color/image_raw", Image, queue_size=1
+            self._topic("color/image_raw"), Image, queue_size=1
         )
         self.color_info_pub = rospy.Publisher(
-            "/piper/camera/wrist/color/camera_info", CameraInfo, queue_size=1
+            self._topic("color/camera_info"), CameraInfo, queue_size=1
         )
         self.depth_raw_pub = rospy.Publisher(
-            "/piper/camera/wrist/depth/image_raw", Image, queue_size=1
+            self._topic("depth/image_raw"), Image, queue_size=1
         )
         self.depth_raw_info_pub = rospy.Publisher(
-            "/piper/camera/wrist/depth/camera_info", CameraInfo, queue_size=1
+            self._topic("depth/camera_info"), CameraInfo, queue_size=1
         )
         self.depth_registered_pub = rospy.Publisher(
-            "/piper/camera/wrist/depth_registered/image_raw", Image, queue_size=1
+            self._topic("depth_registered/image_raw"), Image, queue_size=1
         )
         self.depth_registered_info_pub = rospy.Publisher(
-            "/piper/camera/wrist/depth_registered/camera_info",
+            self._topic("depth_registered/camera_info"),
             CameraInfo,
             queue_size=1,
         )
         self.lrm_pub = rospy.Publisher(
-            "/piper/camera/wrist/lrm_distance", Float32, queue_size=1
+            self._topic("lrm_distance"), Float32, queue_size=1
         )
 
         self.color_model_source = "unknown"
         self.depth_model_source = "unknown"
+
+    @staticmethod
+    def _normalize_topic_ns(raw: str) -> str:
+        ns = str(raw or "/piper/camera/wrist").strip()
+        if not ns.startswith("/"):
+            ns = "/" + ns
+        return ns.rstrip("/")
+
+    def _topic(self, suffix: str) -> str:
+        return f"{self.output_ns}/{suffix.lstrip('/')}"
 
     def _publish_cam_to_flange_tf(self):
         matrix_raw = rospy.get_param("~hand_eye/T_cam_to_flange", None)
@@ -366,7 +435,7 @@ class PiperOrbbec:
         return msg
 
     def setup(self):
-        self.pipeline = Pipeline()
+        self.pipeline = self._create_pipeline()
         self.device = self.pipeline.get_device()
         config = Config()
 
@@ -428,13 +497,69 @@ class PiperOrbbec:
                 rospy.logwarn("LRM 开启失败: %s", exc)
 
         rospy.loginfo(
-            "相机启动成功, disp256=%s, rotate_180=%s, color_frame=%s, depth_frame=%s, depth_registered_frame=%s",
+            "相机启动成功, role=%s, ns=%s, usb_port=%s, camera_index=%s, disp256=%s, rotate_180=%s, color_frame=%s, depth_frame=%s, depth_registered_frame=%s",
+            self.camera_role,
+            self.output_ns,
+            self.usb_port or "<auto>",
+            self.camera_index or "<auto>",
             "OK" if disparity_ok else "NO",
             self.rotate_180,
             self.color_frame_id,
             self.depth_frame_id,
             self.depth_registered_frame_id,
         )
+
+    def _create_pipeline(self) -> Pipeline:
+        selector = self.usb_port or self.camera_index
+        if self.usb_port and self.camera_index:
+            raise RuntimeError("usb_port 和 camera_index 只能指定一个")
+        if self.serial_number and selector:
+            raise RuntimeError("serial_number 与 usb_port/camera_index 只能指定一种")
+
+        if not self.serial_number and not selector:
+            rospy.logwarn(
+                "未指定 %s 相机 usb_port/camera_index，将使用 pyorbbecsdk 默认设备",
+                self.camera_role,
+            )
+            return Pipeline()
+
+        context = Context()
+        device_list = context.query_devices()
+
+        if self.serial_number:
+            rospy.loginfo("按 serial_number 选择 %s 相机: %s", self.camera_role, self.serial_number)
+            device = device_list.get_device_by_serial_number(self.serial_number)
+        else:
+            resolved_selector = resolve_usb_port_selector(selector)
+            rospy.loginfo(
+                "按 usb_port/index 选择 %s 相机: %s -> %s",
+                self.camera_role,
+                selector,
+                resolved_selector,
+            )
+            device = device_list.get_device_by_uid(resolved_selector)
+
+        if device is None:
+            raise RuntimeError(
+                f"未找到 {self.camera_role} 相机: "
+                f"serial_number={self.serial_number or '<empty>'}, "
+                f"usb_port={self.usb_port or '<empty>'}, "
+                f"camera_index={self.camera_index or '<empty>'}"
+            )
+
+        try:
+            info = device.get_device_info()
+            rospy.loginfo(
+                "已选择 %s 相机: name=%s, serial=%s, uid=%s",
+                self.camera_role,
+                info.get_name(),
+                info.get_serial_number(),
+                info.get_uid(),
+            )
+        except Exception as exc:
+            rospy.logwarn("读取 %s 相机设备信息失败: %s", self.camera_role, exc)
+
+        return Pipeline(device)
 
     def spin(self):
         rate = rospy.Rate(self.publish_rate)

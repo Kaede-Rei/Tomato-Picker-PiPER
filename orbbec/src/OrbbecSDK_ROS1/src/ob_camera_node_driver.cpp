@@ -23,6 +23,7 @@
 #include <regex>
 #include <sys/mman.h>
 #include <iomanip>  // For std::put_time
+#include <cctype>
 
 #include <boost/filesystem.hpp>
 #include <malloc.h>
@@ -35,6 +36,62 @@ namespace {
 std::string getLogDirectoryForCamera(const std::string &camera_name) {
   std::string home_dir = std::getenv("HOME") ? std::getenv("HOME") : "";
   return (boost::filesystem::path(home_dir) / ".ros" / "Log" / camera_name).string();
+}
+
+std::string trimString(const std::string &value) {
+  auto begin = value.begin();
+  while (begin != value.end() && std::isspace(static_cast<unsigned char>(*begin))) {
+    ++begin;
+  }
+  auto end = value.end();
+  while (end != begin && std::isspace(static_cast<unsigned char>(*(end - 1)))) {
+    --end;
+  }
+  return std::string(begin, end);
+}
+
+std::string basenameString(const std::string &path) {
+  return boost::filesystem::path(path).filename().string();
+}
+
+std::string canonicalPath(const std::string &path) {
+  try {
+    return boost::filesystem::canonical(path).string();
+  } catch (...) {
+    return path;
+  }
+}
+
+std::string usbUidFromVideoDevice(const std::string &video_device) {
+  const auto video_name = basenameString(canonicalPath(video_device));
+  if (video_name.rfind("video", 0) != 0) {
+    return "";
+  }
+
+  const auto sys_device = "/sys/class/video4linux/" + video_name + "/device";
+  const auto resolved_sys_device = canonicalPath(sys_device);
+  std::regex usb_port_regex("([0-9]+-[0-9]+(?:\\.[0-9]+)*)(?::[0-9.]+)?",
+                            std::regex_constants::ECMAScript);
+  std::string usb_uid;
+  for (std::sregex_iterator it(resolved_sys_device.begin(), resolved_sys_device.end(), usb_port_regex), end;
+       it != end; ++it) {
+    usb_uid = (*it)[1].str();
+  }
+  return usb_uid;
+}
+
+std::string usbUidFromComAliasName(const std::string &alias_name) {
+  std::regex com_regex("com-([0-9][0-9.-]*)-video", std::regex_constants::ECMAScript);
+  std::smatch match;
+  if (!std::regex_match(alias_name, match, com_regex)) {
+    return "";
+  }
+
+  auto token = match[1].str();
+  if (token.find('-') != std::string::npos) {
+    return token;
+  }
+  return "1-" + token;
 }
 
 ros::console::levels::Level rosLogSeverityFromString(const std::string &log_level) {
@@ -330,14 +387,16 @@ std::shared_ptr<ob::Device> OBCameraNodeDriver::selectDeviceBySerialNumber(
 
 std::shared_ptr<ob::Device> OBCameraNodeDriver::selectDeviceByUSBPort(
     const std::shared_ptr<ob::DeviceList> &list, const std::string &usb_port) {
+  const auto resolved_usb_port = resolveUsbPortSelector(usb_port);
   try {
-    ROS_INFO_STREAM_THROTTLE(5.0, "Selecting device by USB port: " << usb_port);
+    ROS_INFO_STREAM_THROTTLE(5.0, "Selecting device by USB port: " << usb_port
+                                                                  << " -> " << resolved_usb_port);
     std::lock_guard<decltype(device_lock_)> lock(device_lock_);
-    auto device = list->getDeviceByUid(usb_port.c_str(), device_access_mode_);
+    auto device = list->getDeviceByUid(resolved_usb_port.c_str(), device_access_mode_);
     if (device) {
-      ROS_INFO_STREAM_THROTTLE(5.0, "getDeviceByUid device usb port " << usb_port << " done");
+      ROS_INFO_STREAM_THROTTLE(5.0, "getDeviceByUid device usb port " << resolved_usb_port << " done");
     } else {
-      ROS_ERROR_STREAM_THROTTLE(5.0, "getDeviceByUid device usb port " << usb_port << " failed");
+      ROS_ERROR_STREAM_THROTTLE(5.0, "getDeviceByUid device usb port " << resolved_usb_port << " failed");
       ROS_ERROR("Please use script to get usb port: rosrun orbbec_camera list_devices_node");
     }
     return device;
@@ -760,6 +819,47 @@ std::string OBCameraNodeDriver::parseUsbPort(const std::string &line) {
     }
   }
   return port_id;
+}
+
+std::string OBCameraNodeDriver::resolveUsbPortSelector(const std::string &selector) {
+  const auto value = trimString(selector);
+  if (value.empty()) {
+    return value;
+  }
+
+  std::regex index_regex("[0-9]+", std::regex_constants::ECMAScript);
+  std::regex video_regex("(?:/dev/)?video([0-9]+)", std::regex_constants::ECMAScript);
+  std::smatch match;
+
+  if (std::regex_match(value, match, video_regex)) {
+    const auto index = match[1].str();
+    const auto uid = usbUidFromVideoDevice("/dev/video" + index);
+    if (!uid.empty()) {
+      return uid;
+    }
+  }
+
+  if (std::regex_match(value, index_regex)) {
+    const auto index = value;
+    const auto uid = usbUidFromVideoDevice("/dev/video" + index);
+    if (!uid.empty()) {
+      return uid;
+    }
+  }
+
+  if (value.rfind("/dev/", 0) == 0) {
+    const auto uid = usbUidFromVideoDevice(value);
+    if (!uid.empty()) {
+      return uid;
+    }
+
+    const auto alias_uid = usbUidFromComAliasName(basenameString(value));
+    if (!alias_uid.empty()) {
+      return alias_uid;
+    }
+  }
+
+  return value;
 }
 
 bool OBCameraNodeDriver::rebootDeviceServiceCallback(std_srvs::EmptyRequest &req,

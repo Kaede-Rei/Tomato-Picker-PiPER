@@ -16,6 +16,7 @@
 
 #include "orbbec_camera/ob_camera_node.h"
 #include "libobsensor/hpp/Utils.hpp"
+#include <algorithm>
 #include <fstream>
 #if defined(USE_RK_HW_DECODER)
 #include "orbbec_camera/rk_mpp_decoder.h"
@@ -36,6 +37,14 @@ int64_t getSteadyNowUs() {
   return std::chrono::duration_cast<std::chrono::microseconds>(
              std::chrono::steady_clock::now().time_since_epoch())
       .count();
+}
+
+std::string toFrameNamePrefix(std::string camera_name) {
+  std::replace(camera_name.begin(), camera_name.end(), '/', '_');
+  while (!camera_name.empty() && camera_name.front() == '_') {
+    camera_name.erase(camera_name.begin());
+  }
+  return camera_name.empty() ? "camera" : camera_name;
 }
 }  // namespace
 
@@ -246,13 +255,14 @@ void OBCameraNode::clean() {
 OBCameraNode::~OBCameraNode() noexcept { clean(); }
 void OBCameraNode::getParameters() {
   camera_name_ = nh_private_.param<std::string>("camera_name", "camera");
+  const std::string frame_name_prefix = toFrameNamePrefix(camera_name_);
   enable_frame_timestamp_csv_ = nh_private_.param<bool>("enable_frame_timestamp_csv", false);
   frame_timestamp_csv_file_ = nh_private_.param<std::string>("frame_timestamp_csv_file", "");
-  camera_link_frame_id_ = camera_name_ + "_link";
+  camera_link_frame_id_ = frame_name_prefix + "_link";
   for (const auto& stream_index : IMAGE_STREAMS) {
-    frame_id_[stream_index] = camera_name_ + "_" + stream_name_[stream_index] + "_frame";
+    frame_id_[stream_index] = frame_name_prefix + "_" + stream_name_[stream_index] + "_frame";
     optical_frame_id_[stream_index] =
-        camera_name_ + "_" + stream_name_[stream_index] + "_optical_frame";
+        frame_name_prefix + "_" + stream_name_[stream_index] + "_optical_frame";
   }
   for (const auto& stream_index : IMAGE_STREAMS) {
     std::string param_name = stream_name_[stream_index] + "_width";
@@ -276,7 +286,7 @@ void OBCameraNode::getParameters() {
   }
   depth_aligned_frame_id_[DEPTH] = optical_frame_id_[COLOR];
 
-  accel_gyro_frame_id_ = camera_name_ + "_accel_gyro_optical_frame";
+  accel_gyro_frame_id_ = frame_name_prefix + "_accel_gyro_optical_frame";
 
   publish_tf_ = nh_private_.param<bool>("publish_tf", false);
   depth_registration_ = nh_private_.param<bool>("depth_registration", false);
@@ -376,11 +386,11 @@ void OBCameraNode::getParameters() {
     imu_rate_[stream_index] = nh_private_.param<std::string>(param_name, "");
     param_name = stream_name_[stream_index] + "_range";
     imu_range_[stream_index] = nh_private_.param<std::string>(param_name, "");
-    param_name = camera_name_ + "_" + stream_name_[stream_index] + "_frame_id";
-    std::string default_frame_id = camera_name_ + "_" + stream_name_[stream_index] + "_frame";
+    param_name = frame_name_prefix + "_" + stream_name_[stream_index] + "_frame_id";
+    std::string default_frame_id = frame_name_prefix + "_" + stream_name_[stream_index] + "_frame";
     frame_id_[stream_index] = nh_private_.param<std::string>(param_name, default_frame_id);
     std::string default_optical_frame_id =
-        camera_name_ + "_" + stream_name_[stream_index] + "_optical_frame";
+        frame_name_prefix + "_" + stream_name_[stream_index] + "_optical_frame";
     param_name = stream_name_[stream_index] + "_optical_frame_id";
     optical_frame_id_[stream_index] =
         nh_private_.param<std::string>(param_name, default_optical_frame_id);

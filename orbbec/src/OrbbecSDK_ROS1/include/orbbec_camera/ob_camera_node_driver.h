@@ -66,6 +66,8 @@ class OBCameraNodeDriver {
 
   static std::string parseUsbPort(const std::string& line);
 
+  static std::string resolveUsbPortSelector(const std::string& selector);
+
   void presetUpdateCallback(bool firstCall, OBFwUpdateState state, const char* message,
                             uint8_t percent);
   void updatePresetFirmware(std::string path);
