@@ -1,18 +1,52 @@
 <launch>
+    <arg name="use_fake_controller" default="false" />
+    <arg name="fake_execution_type" default="interpolate" />
+    <arg name="can_port" default="can0" />
+    <arg name="auto_enable" default="true" />
+    <arg name="use_camera" default="true" />
+    <arg name="use_perception" default="true" />
+    <arg name="use_rviz" default="true" />
+    <arg name="joint_command_topic" default="/piper/joint_ctrl_command" />
+
     <!-- 真机控制 - 启动 PiPER 控制节点 -->
-    <include file="$(find piper)/launch/start_single_piper.launch" />
+    <group unless="$(arg use_fake_controller)">
+        <include file="$(find piper)/launch/start_single_piper.launch">
+            <arg name="can_port" value="$(arg can_port)" />
+            <arg name="auto_enable" value="$(arg auto_enable)" />
+            <arg name="joint_command_topic" value="$(arg joint_command_topic)" />
+            <arg name="joint_state_topic" value="/joint_states" />
+        </include>
+
+        <node pkg="piper" type="piper_follow_joint_trajectory_bridge.py" name="arm_controller" output="screen">
+            <param name="command_topic" value="$(arg joint_command_topic)" />
+        </node>
+
+        <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
+    </group>
 
     <!-- Gemini335L 相机 -->
-    <include file="$(find piper_camera)/launch/piper_camera.launch" />
+    <include file="$(find piper_camera)/launch/piper_camera.launch" if="$(arg use_camera)" />
 
-    <!-- 硬件节点 -->
-    <include file="$(find piper_with_gripper_moveit)/launch/demo.launch" />
+    <!-- MoveIt：fake 模式使用 fake controller -->
+    <include file="$(find piper_with_gripper_moveit)/launch/demo.launch" if="$(arg use_fake_controller)">
+        <arg name="moveit_controller_manager" value="fake" />
+        <arg name="fake_execution_type" value="$(arg fake_execution_type)" />
+        <arg name="use_rviz" value="$(arg use_rviz)" />
+    </include>
+
+    <!-- MoveIt：真机模式使用 simple controller，对接 arm_controller/follow_joint_trajectory -->
+    <include file="$(find piper_with_gripper_moveit)/launch/demo.launch" unless="$(arg use_fake_controller)">
+        <arg name="moveit_controller_manager" value="simple" />
+        <arg name="fake_execution_type" value="$(arg fake_execution_type)" />
+        <arg name="use_rviz" value="$(arg use_rviz)" />
+    </include>
 
     <!-- PiPER 感知 -->
-    <include file="$(find piper_perception)/launch/piper_perception.launch" />
+    <include file="$(find piper_perception)/launch/piper_perception.launch" if="$(arg use_perception)" />
 
     <!-- 接口节点 -->
     <node pkg="piper_interface" type="piper_start" name="piper_start" output="screen">
         <rosparam command="load" file="$(find piper_interface)/config/config.yaml" />
+        <param name="start/eef/enabled" value="false" if="$(arg use_fake_controller)" />
     </node>
 </launch>

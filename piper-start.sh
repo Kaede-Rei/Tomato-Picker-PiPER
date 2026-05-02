@@ -3,16 +3,20 @@
 # 启动 Piper 系统脚本，并在收到中断时执行回零（可选失能）
 #
 # 使用方法：
-#   ./piper-start.sh [--disable] [--delay 秒数]
-#   ./piper-start.sh [-d] [-t 秒数]
+#   ./piper-start.sh [--fake|--real] [--disable] [--delay 秒数]
+#   ./piper-start.sh [--fake|-f] [--real|-r] [-d] [-t 秒数]
 #
 # 示例：
 #   ./piper-start.sh
+#   ./piper-start.sh --fake
+#   ./piper-start.sh --real
 #   ./piper-start.sh --disable 或 ./piper-start.sh -d
 #   ./piper-start.sh --delay 5 或 ./piper-start.sh -t 5
 #   ./piper-start.sh --disable --delay 8
 #
 # 参数：
+#   --fake, -f      使用 MoveIt fake_controller，不启动真机控制节点，不配置 CAN
+#   --real, -r      使用真机 controller（默认）
 #   --disable, -d   中断时调用 /enable_srv 使系统失能，默认不失能
 #   --delay, -t     回零后等待时间（秒），默认 2 秒
 
@@ -38,6 +42,7 @@ fi
 # 默认参数
 DISABLE_ON_EXIT=false
 DELAY_SEC=2
+USE_FAKE_CONTROLLER=false
 SUCCESS=false
 ROSLAUNCH_PID=""
 CLEANING_UP=false
@@ -45,6 +50,14 @@ CLEANING_UP=false
 # 解析参数
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --fake|-f)
+            USE_FAKE_CONTROLLER=true
+            shift
+            ;;
+        --real|-r)
+            USE_FAKE_CONTROLLER=false
+            shift
+            ;;
         --disable|-d)
             DISABLE_ON_EXIT=true
             shift
@@ -132,18 +145,27 @@ PY
 trap cleanup SIGINT SIGTERM
 
 echo "================ 启动 Piper 系统 ================"
+if [[ "$USE_FAKE_CONTROLLER" == true ]]; then
+    echo "[MODE] fake_controller"
+else
+    echo "[MODE] real controller"
+fi
 
 # 配置 CAN 接口
-echo "[1/2] 配置 CAN 接口"
-if [ -f "$SCRIPT_DIR/can-activate.sh" ]; then
-    sudo "$SCRIPT_DIR/can-activate.sh" || echo "[WARN] CAN 配置脚本执行异常，尝试继续启动 ROS..."
+if [[ "$USE_FAKE_CONTROLLER" == true ]]; then
+    echo "[1/2] fake 模式跳过 CAN 配置"
 else
-    echo "[WARN] 未找到 can-activate.sh，跳过配置步骤"
+    echo "[1/2] 配置 CAN 接口"
+    if [ -f "$SCRIPT_DIR/can-activate.sh" ]; then
+        sudo "$SCRIPT_DIR/can-activate.sh" || echo "[WARN] CAN 配置脚本执行异常，尝试继续启动 ROS..."
+    else
+        echo "[WARN] 未找到 can-activate.sh，跳过配置步骤"
+    fi
 fi
 
 # 启动 ROS Launch
 echo "[2/2] 启动 ROS Launch..."
-roslaunch piper_interface piper_start.launch &
+roslaunch piper_interface piper_start.launch use_fake_controller:="$USE_FAKE_CONTROLLER" &
 ROSLAUNCH_PID=$!
 
 # 只要 roslaunch 成功拉起，cleanup 就可以接管退出流程

@@ -177,6 +177,8 @@ ip link show can0
 可选参数：
 
 ```bash
+./piper-start.sh --real   # 默认：启动真机控制节点，MoveIt 使用 simple controller
+./piper-start.sh --fake   # 只启动 MoveIt fake_controller，跳过 CAN 和真机控制节点
 ./piper-start.sh --disable
 ./piper-start.sh --delay 5
 ./piper-start.sh --disable --delay 8
@@ -187,6 +189,8 @@ ip link show can0
 ```bash
 source piper_tomato/devel/setup.bash
 roslaunch piper_interface piper_start.launch
+# 或 fake controller:
+roslaunch piper_interface piper_start.launch use_fake_controller:=true
 ```
 
 ### 5.5 启动 GUI
