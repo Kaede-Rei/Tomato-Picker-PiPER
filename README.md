@@ -126,9 +126,12 @@ sudo apt install -y \
   ros-noetic-pcl-ros \
   ros-noetic-pcl-conversions \
   ros-noetic-tf2-sensor-msgs \
-  ros-noetic-moveit-ros-perception
+  ros-noetic-moveit-ros-perception \
+  ros-noetic-image-geometry
 
-pip3 install piper_sdk
+cd ./orbbec/pyorbbecsdk && sudo chmod +x ./install_udev_rules.sh && sudo ./install_udev_rules.sh && sudo udevadm control --reload && sudo udevadm trigger && pip install pyorbbecsdk2 && cd ../../
+
+pip install python-can piper_sdk
 sudo usermod -aG dialout $USER
 ```
 
@@ -139,7 +142,14 @@ Ubuntu 22.04 使用 `ros_env` / micromamba 请参考 `ros_env/README.md`
 ```bash
 cd /path/to/piper-ws
 
-cd piper_ros
+cd ../orbbec
+catkin_make \
+  -DCATKIN_ENABLE_TESTING=OFF \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+source devel/setup.bash
+
+cd ../piper_ros
 catkin_make \
   -DCATKIN_ENABLE_TESTING=OFF \
   -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
