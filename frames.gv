@@ -1,0 +1,15 @@
+digraph G {
+"link6" -> "wrist_camera_color_optical_frame"[label="Broadcaster: /piper_orbbec_wrist\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1777730967.070 sec old)\nBuffer length: 0.000 sec\n"];
+"piper_camera_mid_depth_frame" -> "piper_camera_mid_color_frame"[label="Broadcaster: /piper/camera/mid/camera\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1777730967.070 sec old)\nBuffer length: 0.000 sec\n"];
+"piper_camera_mid_link" -> "piper_camera_mid_depth_frame"[label="Broadcaster: /piper/camera/mid/camera\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1777730967.070 sec old)\nBuffer length: 0.000 sec\n"];
+"piper_camera_mid_color_frame" -> "piper_camera_mid_color_optical_frame"[label="Broadcaster: /piper/camera/mid/camera\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1777730967.070 sec old)\nBuffer length: 0.000 sec\n"];
+"piper_camera_mid_depth_frame" -> "piper_camera_mid_depth_optical_frame"[label="Broadcaster: /piper/camera/mid/camera\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1777730967.070 sec old)\nBuffer length: 0.000 sec\n"];
+edge [style=invis];
+ subgraph cluster_legend { style=bold; color=black; label ="view_frames Result";
+"Recorded at time: 1777730967.070"[ shape=plaintext ] ;
+ }->"link6";
+edge [style=invis];
+ subgraph cluster_legend { style=bold; color=black; label ="view_frames Result";
+"Recorded at time: 1777730967.070"[ shape=plaintext ] ;
+ }->"piper_camera_mid_link";
+}

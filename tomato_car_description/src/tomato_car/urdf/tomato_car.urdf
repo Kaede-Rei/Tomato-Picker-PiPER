@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="tomato_car">
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="0.32752 -0.0028149 0.16392"
+        rpy="0 0 0" />
+      <mass
+        value="41.83" />
+      <inertia
+        ixx="0.35581"
+        ixy="-0.00042322"
+        ixz="0.0089393"
+        iyy="1.5268"
+        iyz="-0.00022991"
+        izz="1.6022" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tomato_car/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tomato_car/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="frot_right_wheel_link">
+    <inertial>
+      <origin
+        xyz="7.9717E-07 -0.0031072 -4.9001E-07"
+        rpy="0 0 0" />
+      <mass
+        value="1.4097" />
+      <inertia
+        ixx="0.0068422"
+        ixy="-2.974E-09"
+        ixz="2.9632E-07"
+        iyy="0.012971"
+        iyz="-2.6621E-09"
+        izz="0.0068424" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tomato_car/meshes/frot_right_wheel_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tomato_car/meshes/frot_right_wheel_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="frot_right_wheel_joint"
+    type="continuous">
+    <origin
+      xyz="0.6 -0.25872 -1.3111E-05"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="frot_right_wheel_link" />
+    <axis
+      xyz="0 -1 0" />
+  </joint>
+  <link
+    name="frot_left_wheel_link">
+    <inertial>
+      <origin
+        xyz="7.1211E-07 0.0035556 -6.725E-07"
+        rpy="0 0 0" />
+      <mass
+        value="1.4097" />
+      <inertia
+        ixx="0.0068419"
+        ixy="-1.6285E-09"
+        ixz="-1.4286E-08"
+        iyy="0.01297"
+        iyz="-2.8534E-09"
+        izz="0.0068423" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tomato_car/meshes/frot_left_wheel_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tomato_car/meshes/frot_left_wheel_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="frot_left_wheel_joint"
+    type="continuous">
+    <origin
+      xyz="0.6 0.25872 -1.3105E-05"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="frot_left_wheel_link" />
+    <axis
+      xyz="0 -1 0" />
+  </joint>
+  <link
+    name="behind_right_wheel_link">
+    <inertial>
+      <origin
+        xyz="-1.5435E-07 0.00024385 -4.6755E-07"
+        rpy="0 0 0" />
+      <mass
+        value="2.6029" />
+      <inertia
+        ixx="0.0091142"
+        ixy="1.6802E-09"
+        ixz="-4.0466E-07"
+        iyy="0.016524"
+        iyz="1.4371E-07"
+        izz="0.0091145" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tomato_car/meshes/behind_right_wheel_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tomato_car/meshes/behind_right_wheel_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="behind_right_wheel_joint"
+    type="continuous">
+    <origin
+      xyz="0 -0.25872 0"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="behind_right_wheel_link" />
+    <axis
+      xyz="0 -1 0" />
+  </joint>
+  <link
+    name="behind_left_wheel_link">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="0" />
+      <inertia
+        ixx="0"
+        ixy="0"
+        ixz="0"
+        iyy="0"
+        iyz="0"
+        izz="0" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tomato_car/meshes/behind_left_wheel_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://tomato_car/meshes/behind_left_wheel_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="behind_left_wheel_joint"
+    type="continuous">
+    <origin
+      xyz="0 0.25872 0"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="behind_left_wheel_link" />
+    <axis
+      xyz="0 -1 0" />
+  </joint>
+</robot>
