@@ -45,11 +45,12 @@
                 </geometry>
             </collision>
         </link>
-        <joint name="frot_right_wheel_joint" type="continuous">
+        <joint name="frot_right_wheel_joint" type="revolute">
             <origin xyz="0.6 -0.25872 -1.3111E-05" rpy="0 0 0" />
             <parent link="base_link" />
             <child link="frot_right_wheel_link" />
-            <axis xyz="0 -1 0" />
+            <axis xyz="0 0 -1" />
+            <limit lower="-0.59" upper="0.59" effort="10" velocity="2"/>
         </joint>
         <link name="frot_left_wheel_link">
             <inertial>
@@ -73,11 +74,12 @@
                 </geometry>
             </collision>
         </link>
-        <joint name="frot_left_wheel_joint" type="continuous">
+        <joint name="frot_left_wheel_joint" type="revolute">
             <origin xyz="0.6 0.25872 -1.3105E-05" rpy="0 0 0" />
             <parent link="base_link" />
             <child link="frot_left_wheel_link" />
-            <axis xyz="0 -1 0" />
+            <axis xyz="0 0 1" />
+            <limit lower="-0.59" upper="0.59" effort="10" velocity="2"/>
         </joint>
         <link name="behind_right_wheel_link">
             <inertial>
