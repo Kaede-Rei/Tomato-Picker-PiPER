@@ -14,7 +14,7 @@
         <origin xyz="0.1124 0 0.67" rpy="0 0 0"/>
     </xacro:piper_arm>
 
-    <xacro:gemini335L_336L_camera prefix="wrist_cam" parent="${arm_prefix}_link6" use_collision="false">
+    <xacro:gemini335L_336L_camera prefix="wrist_cam" parent="${arm_prefix}_link6" use_collision="true">
         <origin xyz="0.041 -0.048 0.064" rpy="3.14 -1.57 0"/>
     </xacro:gemini335L_336L_camera>
 

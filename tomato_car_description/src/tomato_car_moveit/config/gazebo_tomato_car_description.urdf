@@ -365,6 +365,12 @@
                 <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
             </material>
         </visual>
+        <collision>
+            <origin rpy="0 0 0" xyz="-0.011715 -0.0475 -0.014311" />
+            <geometry>
+                <mesh filename="package://tomato_car_description/meshes/wrist_camera/base_link.STL" />
+            </geometry>
+        </collision>
     </link>
     <link name="wrist_cam_color_screw_frame">
         <inertial>
@@ -381,6 +387,12 @@
                 <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
             </material>
         </visual>
+        <collision>
+            <origin rpy="0 0 0" xyz="0 0 0" />
+            <geometry>
+                <mesh filename="package://tomato_car_description/meshes/wrist_camera/camera_color_screw_frame.STL" />
+            </geometry>
+        </collision>
     </link>
     <joint name="wrist_cam_color_screw_joint" type="fixed">
         <origin rpy="0 0 0" xyz="-0.011715 -0.0475 -0.014311" />
@@ -403,6 +415,12 @@
                 <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
             </material>
         </visual>
+        <collision>
+            <origin rpy="0 0 0" xyz="0 0 0" />
+            <geometry>
+                <mesh filename="package://tomato_car_description/meshes/wrist_camera/camera_IMU_frame.STL" />
+            </geometry>
+        </collision>
     </link>
     <joint name="wrist_cam_IMU_joint" type="fixed">
         <origin rpy="0 0 0" xyz="-0.01425 -0.007866 -0.001068" />
@@ -425,6 +443,12 @@
                 <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
             </material>
         </visual>
+        <collision>
+            <origin rpy="0 0 0" xyz="0 0 0" />
+            <geometry>
+                <mesh filename="package://tomato_car_description/meshes/wrist_camera/camera_depth_frame.STL" />
+            </geometry>
+        </collision>
     </link>
     <joint name="wrist_cam_depth_joint" type="fixed">
         <origin rpy="0 0 0" xyz="0 0 0" />
@@ -447,6 +471,12 @@
                 <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
             </material>
         </visual>
+        <collision>
+            <origin rpy="0 0 0" xyz="0 0 0" />
+            <geometry>
+                <mesh filename="package://tomato_car_description/meshes/wrist_camera/camera_infra1_frame.STL" />
+            </geometry>
+        </collision>
     </link>
     <joint name="wrist_cam_left_ir_joint" type="fixed">
         <origin rpy="0 0 0" xyz="0 0 0" />
@@ -469,6 +499,12 @@
                 <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
             </material>
         </visual>
+        <collision>
+            <origin rpy="0 0 0" xyz="0 0 0" />
+            <geometry>
+                <mesh filename="package://tomato_car_description/meshes/wrist_camera/camera_infra1_optical_frame.STL" />
+            </geometry>
+        </collision>
     </link>
     <joint name="wrist_cam_left_ir_optical_joint" type="fixed">
         <origin rpy="-1.5708 0 -1.5708" xyz="0 0 0" />
@@ -491,6 +527,12 @@
                 <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
             </material>
         </visual>
+        <collision>
+            <origin rpy="0 0 0" xyz="0 0 0" />
+            <geometry>
+                <mesh filename="package://tomato_car_description/meshes/wrist_camera/camera_infra2_frame.STL" />
+            </geometry>
+        </collision>
     </link>
     <joint name="wrist_cam_right_ir_joint" type="fixed">
         <origin rpy="0 0 0" xyz="0 -0.095 0" />
@@ -513,6 +555,12 @@
                 <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
             </material>
         </visual>
+        <collision>
+            <origin rpy="0 0 0" xyz="0 0 0" />
+            <geometry>
+                <mesh filename="package://tomato_car_description/meshes/wrist_camera/camera_infra2_optical_frame.STL" />
+            </geometry>
+        </collision>
     </link>
     <joint name="wrist_cam_right_ir_optical_joint" type="fixed">
         <origin rpy="-1.5708 0 -1.5708" xyz="0 0 0" />
@@ -535,6 +583,12 @@
                 <color rgba="0.501960784313725 0.250980392156863 0.250980392156863 1" />
             </material>
         </visual>
+        <collision>
+            <origin rpy="0 0 0" xyz="0 0 0" />
+            <geometry>
+                <mesh filename="package://tomato_car_description/meshes/wrist_camera/camera_color_frame.STL" />
+            </geometry>
+        </collision>
     </link>
     <joint name="wrist_cam_color_joint" type="fixed">
         <origin rpy="0.0010157 0 0" xyz="0 -0.02375 0" />
@@ -557,6 +611,12 @@
                 <color rgba="0.501960784313725 0.250980392156863 0.250980392156863 1" />
             </material>
         </visual>
+        <collision>
+            <origin rpy="0 0 0" xyz="0 0 0" />
+            <geometry>
+                <mesh filename="package://tomato_car_description/meshes/wrist_camera/camera_color_optical_frame.STL" />
+            </geometry>
+        </collision>
     </link>
     <joint name="wrist_cam_color_optical_joint" type="fixed">
         <origin rpy="-1.5708 0 -1.5708" xyz="0 0 0" />
