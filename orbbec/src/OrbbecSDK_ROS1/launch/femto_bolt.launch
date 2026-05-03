@@ -7,6 +7,7 @@
     <arg name="log_level" default="none"/>
     <arg name="log_file_name" default=""/>
     <arg name="publish_tf" default="true"/>
+    <arg name="tf_prefix" default=""/>
     <arg name="tf_publish_rate" default="0.0"/>
     <arg name="enable_frame_sync" default="true"/>
     <arg name="time_domain" default="device"/><!-- "device", "global", "system" -->
@@ -120,6 +121,7 @@
             <param name="log_level" value="$(arg log_level)"/>
             <param name="log_file_name" value="$(arg log_file_name)"/>
             <param name="publish_tf" value="$(arg publish_tf)"/>
+            <param name="tf_prefix" value="$(arg tf_prefix)"/>
             <param name="tf_publish_rate" value="$(arg tf_publish_rate)"/>
             <param name="enable_frame_sync" value="$(arg enable_frame_sync)"/>
             <param name="time_domain" value="$(arg time_domain)"/>

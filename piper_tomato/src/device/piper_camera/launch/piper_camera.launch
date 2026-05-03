@@ -41,8 +41,9 @@
     <arg name="orbbec_camera_name_root" default="piper/camera"/>
 
     <arg name="wrist_ns" default="$(arg camera_root_ns)/wrist"/>
-    <arg name="mid_camera_name" default="mid_cam"/>
-    <arg name="far_camera_name" default="far_cam"/>
+    <!-- Topic spaces will be /piper/camera/mid and /piper/camera/far -->
+    <arg name="mid_camera_name" default="$(arg orbbec_camera_name_root)/mid"/>
+    <arg name="far_camera_name" default="$(arg orbbec_camera_name_root)/far"/>
 
     <arg name="wrist_color_frame" default="wrist_cam_color_optical_frame"/>
     <arg name="wrist_depth_frame" default="wrist_cam_depth_optical_frame"/>
@@ -83,6 +84,7 @@
             <arg name="depth_fps" value="30"/>
             <arg name="depth_registration" value="false"/>
             <arg name="publish_tf" value="false"/>
+            <arg name="tf_prefix" value="mid_cam"/>
         </include>
     </group>
 
@@ -108,6 +110,7 @@
             <arg name="depth_fps" value="30"/>
             <arg name="depth_registration" value="false"/>
             <arg name="publish_tf" value="false"/>
+            <arg name="tf_prefix" value="far_cam"/>
         </include>
     </group>
 </launch>

@@ -255,7 +255,8 @@ void OBCameraNode::clean() {
 OBCameraNode::~OBCameraNode() noexcept { clean(); }
 void OBCameraNode::getParameters() {
   camera_name_ = nh_private_.param<std::string>("camera_name", "camera");
-  const std::string frame_name_prefix = toFrameNamePrefix(camera_name_);
+  std::string tf_prefix = nh_private_.param<std::string>("tf_prefix", "");
+  const std::string frame_name_prefix = tf_prefix.empty() ? toFrameNamePrefix(camera_name_) : tf_prefix;
   enable_frame_timestamp_csv_ = nh_private_.param<bool>("enable_frame_timestamp_csv", false);
   frame_timestamp_csv_file_ = nh_private_.param<std::string>("frame_timestamp_csv_file", "");
   camera_link_frame_id_ = frame_name_prefix + "_link";
