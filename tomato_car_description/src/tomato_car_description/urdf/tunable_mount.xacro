@@ -1,0 +1,81 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <!--
+        A temporary 6-DOF adjustable mount for RViz tuning.
+
+        parent:
+            the fixed parent link, e.g. base_link or arm_link6
+
+        child:
+            the generated mount link name
+
+        prefix:
+            unique prefix for the temporary joints
+    -->
+    <xacro:macro name="tunable_mount" params="prefix parent child xyz_limit:=1.0 rpy_limit:=3.14159">
+
+        <link name="${prefix}_x_link"/>
+        <link name="${prefix}_y_link"/>
+        <link name="${prefix}_z_link"/>
+        <link name="${prefix}_roll_link"/>
+        <link name="${prefix}_pitch_link"/>
+        <link name="${child}"/>
+
+        <!-- X translation -->
+        <joint name="${prefix}_x" type="prismatic">
+            <parent link="${parent}"/>
+            <child link="${prefix}_x_link"/>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <axis xyz="1 0 0"/>
+            <limit lower="${-xyz_limit}" upper="${xyz_limit}" effort="1" velocity="0.1"/>
+        </joint>
+
+        <!-- Y translation -->
+        <joint name="${prefix}_y" type="prismatic">
+            <parent link="${prefix}_x_link"/>
+            <child link="${prefix}_y_link"/>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <axis xyz="0 1 0"/>
+            <limit lower="${-xyz_limit}" upper="${xyz_limit}" effort="1" velocity="0.1"/>
+        </joint>
+
+        <!-- Z translation -->
+        <joint name="${prefix}_z" type="prismatic">
+            <parent link="${prefix}_y_link"/>
+            <child link="${prefix}_z_link"/>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <axis xyz="0 0 1"/>
+            <limit lower="${-xyz_limit}" upper="${xyz_limit}" effort="1" velocity="0.1"/>
+        </joint>
+
+        <!-- Roll -->
+        <joint name="${prefix}_roll" type="revolute">
+            <parent link="${prefix}_z_link"/>
+            <child link="${prefix}_roll_link"/>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <axis xyz="1 0 0"/>
+            <limit lower="${-rpy_limit}" upper="${rpy_limit}" effort="1" velocity="0.5"/>
+        </joint>
+
+        <!-- Pitch -->
+        <joint name="${prefix}_pitch" type="revolute">
+            <parent link="${prefix}_roll_link"/>
+            <child link="${prefix}_pitch_link"/>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <axis xyz="0 1 0"/>
+            <limit lower="${-rpy_limit}" upper="${rpy_limit}" effort="1" velocity="0.5"/>
+        </joint>
+
+        <!-- Yaw -->
+        <joint name="${prefix}_yaw" type="revolute">
+            <parent link="${prefix}_pitch_link"/>
+            <child link="${child}"/>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <axis xyz="0 0 1"/>
+            <limit lower="${-rpy_limit}" upper="${rpy_limit}" effort="1" velocity="0.5"/>
+        </joint>
+
+    </xacro:macro>
+
+</robot>

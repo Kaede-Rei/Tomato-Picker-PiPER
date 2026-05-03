@@ -1,5 +1,7 @@
-.vscode
-.VSCodeCounter
+.vscode/
+.VSCodeCounter/
+.codex/
+.agents/
 
 # ROS / catkin generated artifacts
 **/build/

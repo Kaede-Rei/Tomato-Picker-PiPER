@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<robot name="tomato_car_description"
+    xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:include filename="$(find tomato_car_description)/urdf/tomato_car_base.xacro"/>
+    <xacro:include filename="$(find tomato_car_description)/urdf/piper_arm.xacro"/>
+    <xacro:include filename="$(find tomato_car_description)/urdf/gemini335L_336L_camera.xacro"/>
+    <xacro:include filename="$(find tomato_car_description)/urdf/femto_bolt_camera.xacro"/>
+
+    <xacro:property name="arm_prefix" value="arm"/>
+
+    <xacro:tomato_car_base/>
+
+    <xacro:piper_arm prefix="${arm_prefix}" parent="base_link">
+        <origin xyz="0.1124 0 0.67" rpy="0 0 0"/>
+    </xacro:piper_arm>
+
+    <xacro:gemini335L_336L_camera prefix="wrist_cam" parent="${arm_prefix}_link6">
+        <origin xyz="0.041 -0.048 0.064" rpy="3.14 -1.57 0"/>
+    </xacro:gemini335L_336L_camera>
+
+    <xacro:femto_bolt_camera prefix="mid_cam" parent="base_link" mesh_dir="mid_camera">
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+    </xacro:femto_bolt_camera>
+
+    <xacro:femto_bolt_camera prefix="far_cam" parent="base_link" mesh_dir="far_camera">
+        <origin xyz="0.645 0 0.232" rpy="0 0 0"/>
+    </xacro:femto_bolt_camera>
+</robot>

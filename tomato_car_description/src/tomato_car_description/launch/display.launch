@@ -1,0 +1,14 @@
+<launch>
+  <arg name="model" default="$(find tomato_car_description)/urdf/tomato_car_description.urdf.xacro"/>
+  <arg name="rviz" default="true"/>
+  <arg name="use_gui" default="true"/>
+
+  <param name="robot_description" command="$(find xacro)/xacro --inorder $(arg model)"/>
+
+  <node name="joint_state_publisher_gui" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui"
+        if="$(arg use_gui)"/>
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"
+        unless="$(arg use_gui)"/>
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+  <node name="rviz" pkg="rviz" type="rviz" if="$(arg rviz)"/>
+</launch>

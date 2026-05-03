@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<robot name="tomato_car_description_tune"
+    xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:include filename="$(find tomato_car_description)/urdf/tomato_car_base.xacro"/>
+    <xacro:include filename="$(find tomato_car_description)/urdf/piper_arm.xacro"/>
+    <xacro:include filename="$(find tomato_car_description)/urdf/gemini335L_336L_camera.xacro"/>
+    <xacro:include filename="$(find tomato_car_description)/urdf/femto_bolt_camera.xacro"/>
+    <xacro:include filename="$(find tomato_car_description)/urdf/tunable_mount.xacro"/>
+
+    <xacro:property name="arm_prefix" value="arm"/>
+
+    <!-- 1. base -->
+    <xacro:tomato_car_base/>
+
+    <!-- =============================== -->
+    <!-- Arm adjustable mount    -->
+    <!-- =============================== -->
+
+    <xacro:tunable_mount prefix="${arm_prefix}_tune" parent="base_link" child="${arm_prefix}_tune_mount_link" xyz_limit="2.0" rpy_limit="3.14159"/>
+
+    <xacro:piper_arm prefix="${arm_prefix}" parent="${arm_prefix}_tune_mount_link">
+        <origin xyz="0.1124 0 0.67" rpy="0 0 0"/>
+    </xacro:piper_arm>
+
+
+    <!-- =============================== -->
+    <!-- Wrist camera adjustable mount    -->
+    <!-- =============================== -->
+
+    <xacro:tunable_mount prefix="wrist_cam_tune" parent="${arm_prefix}_link6" child="wrist_cam_tune_mount_link" xyz_limit="0.3" rpy_limit="3.14159"/>
+
+    <xacro:gemini335L_336L_camera prefix="wrist_cam" parent="wrist_cam_tune_mount_link">
+        <origin xyz="0.041 -0.048 0.064" rpy="3.14 -1.57 0"/>
+    </xacro:gemini335L_336L_camera>
+
+
+    <!-- =============================== -->
+    <!-- Mid camera adjustable mount      -->
+    <!-- =============================== -->
+
+    <xacro:tunable_mount prefix="mid_cam_tune" parent="base_link" child="mid_cam_tune_mount_link" xyz_limit="2.0" rpy_limit="3.14159"/>
+
+    <xacro:femto_bolt_camera prefix="mid_cam" parent="mid_cam_tune_mount_link" mesh_dir="mid_camera">
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+    </xacro:femto_bolt_camera>
+
+
+    <!-- =============================== -->
+    <!-- Far camera adjustable mount      -->
+    <!-- =============================== -->
+
+    <xacro:tunable_mount prefix="far_cam_tune" parent="base_link" child="far_cam_tune_mount_link" xyz_limit="3.0" rpy_limit="3.14159"/>
+
+    <xacro:femto_bolt_camera prefix="far_cam" parent="far_cam_tune_mount_link" mesh_dir="far_camera">
+        <origin xyz="0.645 0 0.232" rpy="0 0 0"/>
+    </xacro:femto_bolt_camera>
+
+</robot>
