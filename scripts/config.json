@@ -1,0 +1,24 @@
+{
+    "system": {
+        "disable_on_exit": false,
+        "delay_sec": 2
+    },
+    "launch_args": {
+        "use_fake_controller": true,
+        "fake_execution_type": "interpolate",
+        "can_port": "can0",
+        "auto_enable": true,
+        "use_wrist_camera": true,
+        "use_mid_camera": false,
+        "use_far_camera": true,
+        "wrist_usb_port": "/dev/com-1.4-video",
+        "wrist_index": "",
+        "mid_usb_port": "",
+        "mid_index": "",
+        "far_usb_port": "/dev/com-1-video",
+        "far_index": "",
+        "use_perception": true,
+        "use_rviz": true,
+        "joint_command_topic": "/piper/joint_ctrl_command"
+    }
+}

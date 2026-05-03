@@ -238,6 +238,10 @@ class PiperOrbbec:
         return f"{self.output_ns}/{suffix.lstrip('/')}"
 
     def _publish_cam_to_flange_tf(self):
+        if not rospy.get_param("~publish_tf", False):
+            rospy.loginfo("publish_tf 为 False，跳过手眼标定 TF 发布（交由 URDF 处理）")
+            return
+
         matrix_raw = rospy.get_param("~hand_eye/T_cam_to_flange", None)
 
         if matrix_raw is None:
@@ -545,7 +549,11 @@ class PiperOrbbec:
         device_list = context.query_devices()
 
         if self.serial_number:
-            rospy.loginfo("按 serial_number 选择 %s 相机: %s", self.camera_role, self.serial_number)
+            rospy.loginfo(
+                "按 serial_number 选择 %s 相机: %s",
+                self.camera_role,
+                self.serial_number,
+            )
             device = device_list.get_device_by_serial_number(self.serial_number)
         else:
             resolved_selector = resolve_usb_port_selector(selector)

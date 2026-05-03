@@ -1,0 +1,11 @@
+moveit_setup_assistant_config:
+  URDF:
+    package: tomato_car_description
+    relative_path: urdf/tomato_car_description.urdf.xacro
+    xacro_args: ""
+  SRDF:
+    relative_path: config/tomato_car_description.srdf
+  CONFIG:
+    author_name: Kaede Rei
+    author_email: kaerei@foxmail.com
+    generated_timestamp: 1777796159

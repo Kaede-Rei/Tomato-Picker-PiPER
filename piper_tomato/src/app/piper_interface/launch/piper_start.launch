@@ -3,7 +3,18 @@
     <arg name="fake_execution_type" default="interpolate" />
     <arg name="can_port" default="can0" />
     <arg name="auto_enable" default="true" />
-    <arg name="use_camera" default="true" />
+
+    <!-- 相机参数 -->
+    <arg name="use_wrist_camera" default="true" />
+    <arg name="use_mid_camera" default="false" />
+    <arg name="use_far_camera" default="false" />
+    <arg name="wrist_usb_port" default=""/>
+    <arg name="wrist_index" default=""/>
+    <arg name="mid_usb_port" default=""/>
+    <arg name="mid_index" default=""/>
+    <arg name="far_usb_port" default=""/>
+    <arg name="far_index" default=""/>
+
     <arg name="use_perception" default="true" />
     <arg name="use_rviz" default="true" />
     <arg name="joint_command_topic" default="/piper/joint_ctrl_command" />
@@ -15,6 +26,7 @@
             <arg name="auto_enable" value="$(arg auto_enable)" />
             <arg name="joint_command_topic" value="$(arg joint_command_topic)" />
             <arg name="joint_state_topic" value="/joint_states" />
+            <arg name="arm_prefix" value="arm_" />
         </include>
 
         <node pkg="piper" type="piper_follow_joint_trajectory_bridge.py" name="arm_controller" output="screen">
@@ -24,18 +36,28 @@
         <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
     </group>
 
-    <!-- Gemini335L 相机 -->
-    <include file="$(find piper_camera)/launch/piper_camera.launch" if="$(arg use_camera)" />
+    <!-- Orbbec 腕部/中景/远景相机启动 -->
+    <include file="$(find piper_camera)/launch/piper_camera.launch" if="$(eval arg('use_wrist_camera') or arg('use_mid_camera') or arg('use_far_camera'))">
+        <arg name="use_wrist" value="$(arg use_wrist_camera)"/>
+        <arg name="use_mid" value="$(arg use_mid_camera)"/>
+        <arg name="use_far" value="$(arg use_far_camera)"/>
+        <arg name="wrist_usb_port" value="$(arg wrist_usb_port)"/>
+        <arg name="wrist_index" value="$(arg wrist_index)"/>
+        <arg name="mid_usb_port" value="$(arg mid_usb_port)"/>
+        <arg name="mid_index" value="$(arg mid_index)"/>
+        <arg name="far_usb_port" value="$(arg far_usb_port)"/>
+        <arg name="far_index" value="$(arg far_index)"/>
+    </include>
 
     <!-- MoveIt：fake 模式使用 fake controller -->
-    <include file="$(find piper_with_gripper_moveit)/launch/demo.launch" if="$(arg use_fake_controller)">
+    <include file="$(find tomato_car_moveit)/launch/demo.launch" if="$(arg use_fake_controller)">
         <arg name="moveit_controller_manager" value="fake" />
         <arg name="fake_execution_type" value="$(arg fake_execution_type)" />
         <arg name="use_rviz" value="$(arg use_rviz)" />
     </include>
 
     <!-- MoveIt：真机模式使用 simple controller，对接 arm_controller/follow_joint_trajectory -->
-    <include file="$(find piper_with_gripper_moveit)/launch/demo.launch" unless="$(arg use_fake_controller)">
+    <include file="$(find tomato_car_moveit)/launch/demo.launch" unless="$(arg use_fake_controller)">
         <arg name="moveit_controller_manager" value="simple" />
         <arg name="fake_execution_type" value="$(arg fake_execution_type)" />
         <arg name="use_rviz" value="$(arg use_rviz)" />

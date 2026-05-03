@@ -126,16 +126,17 @@ class C_PiperRosNode:
         self.go_zero_service = rospy.Service(
             "go_zero_srv", GoZero, self.handle_go_zero_service
         )  # 创建reset服务
+        prefix = rospy.get_param("~arm_prefix", "")
         # joint
         self.joint_states = JointState()
         self.joint_states.name = [
-            "joint1",
-            "joint2",
-            "joint3",
-            "joint4",
-            "joint5",
-            "joint6",
-            "gripper",
+            f"{prefix}joint1",
+            f"{prefix}joint2",
+            f"{prefix}joint3",
+            f"{prefix}joint4",
+            f"{prefix}joint5",
+            f"{prefix}joint6",
+            f"{prefix}gripper",
         ]
         self.joint_states.position = [0.0] * 7
         self.joint_states.velocity = [0.0] * 7

@@ -41,11 +41,11 @@
     <arg name="orbbec_camera_name_root" default="piper/camera"/>
 
     <arg name="wrist_ns" default="$(arg camera_root_ns)/wrist"/>
-    <arg name="mid_camera_name" default="$(arg orbbec_camera_name_root)/mid"/>
-    <arg name="far_camera_name" default="$(arg orbbec_camera_name_root)/far"/>
+    <arg name="mid_camera_name" default="mid_cam"/>
+    <arg name="far_camera_name" default="far_cam"/>
 
-    <arg name="wrist_color_frame" default="wrist_camera_color_optical_frame"/>
-    <arg name="wrist_depth_frame" default="wrist_camera_depth_optical_frame"/>
+    <arg name="wrist_color_frame" default="wrist_cam_color_optical_frame"/>
+    <arg name="wrist_depth_frame" default="wrist_cam_depth_optical_frame"/>
 
     <group if="$(arg use_wrist)">
         <node pkg="piper_camera" type="piper_orbbec_wrist.py" name="piper_orbbec_wrist" output="screen">
@@ -56,6 +56,7 @@
             <param name="camera_index" value="$(arg wrist_index)"/>
             <param name="color_frame_id" value="$(arg wrist_color_frame)"/>
             <param name="depth_frame_id" value="$(arg wrist_depth_frame)"/>
+            <param name="publish_tf" value="false"/>
             <param name="publish_legacy_orbbec_topics" value="false"/>
         </node>
     </group>
@@ -81,7 +82,7 @@
             <arg name="depth_height" value="512"/>
             <arg name="depth_fps" value="30"/>
             <arg name="depth_registration" value="false"/>
-            <arg name="publish_tf" value="true"/>
+            <arg name="publish_tf" value="false"/>
         </include>
     </group>
 
@@ -106,7 +107,7 @@
             <arg name="depth_height" value="512"/>
             <arg name="depth_fps" value="30"/>
             <arg name="depth_registration" value="false"/>
-            <arg name="publish_tf" value="true"/>
+            <arg name="publish_tf" value="false"/>
         </include>
     </group>
 </launch>

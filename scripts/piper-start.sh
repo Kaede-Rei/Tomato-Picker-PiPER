@@ -25,37 +25,73 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # source ROS 环境
-if [ -f "$SCRIPT_DIR/piper_ros/devel/setup.bash" ]; then
-    source "$SCRIPT_DIR/piper_ros/devel/setup.bash"
+if [ -f "$SCRIPT_DIR/../piper_ros/devel/setup.bash" ]; then
+    source "$SCRIPT_DIR/../piper_ros/devel/setup.bash"
 else
     echo "未找到 PiPER ROS 工作空间，请先编译 ROS 包"
     exit 1
 fi
 
-if [ -f "$SCRIPT_DIR/piper_tomato/devel/setup.bash" ]; then
-    source "$SCRIPT_DIR/piper_tomato/devel/setup.bash"
+if [ -f "$SCRIPT_DIR/../piper_tomato/devel/setup.bash" ]; then
+    source "$SCRIPT_DIR/../piper_tomato/devel/setup.bash"
 else
     echo "未找到 PiPER Tomato 工作空间，请先编译 ROS 包"
     exit 1
 fi
 
-# 默认参数
-DISABLE_ON_EXIT=false
-DELAY_SEC=2
-USE_FAKE_CONTROLLER=false
+# 读取 config.json 配置默认参数
+CONFIG_FILE="$SCRIPT_DIR/config.json"
+LAUNCH_ARGS=()
+
+if [ -f "$CONFIG_FILE" ]; then
+    # 获取系统参数
+    DISABLE_ON_EXIT=$(python3 -c "import json, sys; print(str(json.load(open('$CONFIG_FILE')).get('system', {}).get('disable_on_exit', False)).lower())" 2>/dev/null || echo "false")
+    DELAY_SEC=$(python3 -c "import json, sys; print(json.load(open('$CONFIG_FILE')).get('system', {}).get('delay_sec', 2))" 2>/dev/null || echo "2")
+    USE_FAKE_CONTROLLER=$(python3 -c "import json, sys; print(str(json.load(open('$CONFIG_FILE')).get('launch_args', {}).get('use_fake_controller', False)).lower())" 2>/dev/null || echo "false")
+    
+    # 提取 launch 文件参数，构造成 kwarg:=value 的格式
+    # 过滤掉空字符串参数（例如空 USB 口配置），以防给 rosparam 传递异常空串
+    EXTRA_ARGS=$(python3 -c "
+import json
+try:
+    d = json.load(open('$CONFIG_FILE')).get('launch_args', {})
+    res = []
+    for k, v in d.items():
+        if isinstance(v, bool):
+            val = 'true' if v else 'false'
+        else:
+            val = str(v)
+        if val != '':
+            res.append(f'{k}:={val}')
+    print(' '.join(res))
+except Exception as e:
+    pass
+")
+    if [ -n "$EXTRA_ARGS" ]; then
+        read -ra LAUNCH_ARGS <<< "$EXTRA_ARGS"
+    fi
+else
+    # 万一找不到配置文件，回退到默认
+    DISABLE_ON_EXIT=false
+    DELAY_SEC=2
+    USE_FAKE_CONTROLLER=false
+fi
+
 SUCCESS=false
 ROSLAUNCH_PID=""
 CLEANING_UP=false
 
-# 解析参数
+# 解析 CLI 参数（支持重写配置中的同名标志和引入新 launch 参数）
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --fake|-f)
             USE_FAKE_CONTROLLER=true
+            LAUNCH_ARGS+=("use_fake_controller:=true")
             shift
             ;;
         --real|-r)
             USE_FAKE_CONTROLLER=false
+            LAUNCH_ARGS+=("use_fake_controller:=false")
             shift
             ;;
         --disable|-d)
@@ -72,12 +108,26 @@ while [[ $# -gt 0 ]]; do
             ;;
         --help|-h)
             grep -E '^#' "$0" | sed 's/^# //'
+            echo ""
+            echo "进阶：你可以传递任何额外的 roslaunch 参数来覆盖 config.json 配置，例如:"
+            echo "  ./piper-start.sh use_mid_camera:=true wrist_usb_port:=/dev/video0"
             exit 0
             ;;
         *)
-            echo "未知参数: $1"
-            echo "使用 --help 查看用法"
-            exit 1
+            # 捕获类似 use_camera:=true 这样的额外参数，传递给 roslaunch
+            if [[ "$1" == *":="* ]]; then
+               LAUNCH_ARGS+=("$1")
+               # 如果用户显式传了 use_fake_controller，我们也要更新 bash 变量以维持逻辑一致
+               if [[ "$1" == "use_fake_controller:=true" ]]; then
+                   USE_FAKE_CONTROLLER=true
+               elif [[ "$1" == "use_fake_controller:=false" ]]; then
+                   USE_FAKE_CONTROLLER=false
+               fi
+            else
+               echo "未知参数或格式错误（需满足 key:=value 格式）: $1"
+               exit 1
+            fi
+            shift
             ;;
     esac
 done
@@ -164,8 +214,8 @@ else
 fi
 
 # 启动 ROS Launch
-echo "[2/2] 启动 ROS Launch..."
-roslaunch piper_interface piper_start.launch use_fake_controller:="$USE_FAKE_CONTROLLER" &
+echo "[2/2] 启动 ROS Launch (附带参数: ${LAUNCH_ARGS[*]})"
+roslaunch piper_interface piper_start.launch "${LAUNCH_ARGS[@]}" &
 ROSLAUNCH_PID=$!
 
 # 只要 roslaunch 成功拉起，cleanup 就可以接管退出流程

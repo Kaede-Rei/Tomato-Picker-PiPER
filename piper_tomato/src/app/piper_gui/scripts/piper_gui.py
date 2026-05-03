@@ -79,10 +79,10 @@ class RosConfig:
     action_name: str = "/pick_action"
     simple_move_action_name: str = "/simple_move_arm"
     pick_group_name: str = "gui_pick"
-    flange_frame: str = "link6"
-    tcp_frame: str = "link_tcp"
-    place_frame: str = "base_link"
-    camera_color_frame: str = "eef_camera_color_optical_frame"
+    flange_frame: str = "arm_link6"
+    tcp_frame: str = "arm_link_tcp"
+    place_frame: str = "arm_base_link"
+    camera_color_frame: str = "wrist_cam_color_optical_frame"
     action_wait_sec: float = 5.0
     result_wait_sec: float = 10.0
     tf_wait_sec: float = 0.2
