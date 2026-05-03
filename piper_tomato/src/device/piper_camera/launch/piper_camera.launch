@@ -30,35 +30,36 @@
 
     <arg name="wrist_usb_port" default=""/>
     <arg name="wrist_index" default=""/>
+    <arg name="wrist_serial_number" default=""/>
+
     <arg name="mid_usb_port" default=""/>
     <arg name="mid_index" default=""/>
     <arg name="far_usb_port" default=""/>
     <arg name="far_index" default=""/>
 
-    <arg name="orbbec_device_num" default="$(eval int(arg('use_wrist') in [True, 'true', 'True', '1']) + int(arg('use_mid') in [True, 'true', 'True', '1']) + int(arg('use_far') in [True, 'true', 'True', '1']))"/>
-
     <arg name="camera_root_ns" default="/piper/camera"/>
     <arg name="orbbec_camera_name_root" default="piper/camera"/>
 
+    <arg name="orbbec_device_num" default="$(eval int(arg('use_wrist') in [True, 'true', 'True', '1']) + int(arg('use_mid') in [True, 'true', 'True', '1']) + int(arg('use_far') in [True, 'true', 'True', '1']))"/>
+
     <arg name="wrist_ns" default="$(arg camera_root_ns)/wrist"/>
-    <!-- Topic spaces will be /piper/camera/mid and /piper/camera/far -->
     <arg name="mid_camera_name" default="$(arg orbbec_camera_name_root)/mid"/>
     <arg name="far_camera_name" default="$(arg orbbec_camera_name_root)/far"/>
 
     <arg name="wrist_color_frame" default="wrist_cam_color_optical_frame"/>
     <arg name="wrist_depth_frame" default="wrist_cam_depth_optical_frame"/>
+    <arg name="wrist_registered_frame" default="wrist_cam_color_optical_frame"/>
 
     <group if="$(arg use_wrist)">
-        <node pkg="piper_camera" type="piper_orbbec_wrist.py" name="piper_orbbec_wrist" output="screen">
-            <rosparam command="load" file="$(find piper_camera)/config/piper_orbbec_wrist.yaml"/>
-            <param name="camera_role" value="wrist"/>
+        <node pkg="piper_camera" type="orbbec_wrist.py" name="orbbec_wrist" output="screen">
+            <rosparam command="load" file="$(find piper_camera)/config/orbbec_wrist.yaml"/>
             <param name="output_ns" value="$(arg wrist_ns)"/>
             <param name="usb_port" value="$(arg wrist_usb_port)"/>
             <param name="camera_index" value="$(arg wrist_index)"/>
+            <param name="serial_number" value="$(arg wrist_serial_number)"/>
             <param name="color_frame_id" value="$(arg wrist_color_frame)"/>
             <param name="depth_frame_id" value="$(arg wrist_depth_frame)"/>
-            <param name="publish_tf" value="false"/>
-            <param name="publish_legacy_orbbec_topics" value="false"/>
+            <param name="depth_registered_frame_id" value="$(arg wrist_registered_frame)"/>
         </node>
     </group>
 

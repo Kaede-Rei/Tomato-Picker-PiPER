@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import math
 import os
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 import cv2
 import numpy as np
 import rospy
-import tf2_ros
-from geometry_msgs.msg import TransformStamped
-import tf.transformations as tf_trans
 from cv_bridge import CvBridge
 from sensor_msgs.msg import CameraInfo, Image
 from std_msgs.msg import Float32
@@ -70,6 +66,7 @@ def frame_to_bgr_image(frame: VideoFrame) -> Optional[np.ndarray]:
     if color_format == OBFormat.MJPG:
         return cv2.imdecode(data, cv2.IMREAD_COLOR)
 
+    rospy.logwarn_throttle(2.0, "Unsupported color format: %s", color_format)
     return None
 
 
@@ -99,6 +96,7 @@ def _usb_uid_from_com_alias(alias_name: str) -> str:
     match = re.fullmatch(r"com-([0-9][0-9.-]*)-video", alias_name)
     if not match:
         return ""
+
     token = match.group(1)
     if "-" not in token:
         token = f"1-{token}"
@@ -146,27 +144,27 @@ def resolve_usb_port_selector(selector: str) -> str:
     return value
 
 
-class PiperOrbbec:
-    def __init__(self):
-        rospy.init_node("piper_orbbec_wrist")
+class OrbbecRgbdNode:
+    def __init__(self) -> None:
+        rospy.init_node("orbbec_rgbd_node")
         self.bridge = CvBridge()
 
         self.camera_role = rospy.get_param("~camera_role", "wrist")
         self.output_ns = self._normalize_topic_ns(
-            rospy.get_param("~output_ns", "/piper/camera/wrist")
+            rospy.get_param("~output_ns", f"/piper/camera/{self.camera_role}")
         )
         self.usb_port = rospy.get_param("~usb_port", "")
         self.camera_index = rospy.get_param("~camera_index", "")
         self.serial_number = rospy.get_param("~serial_number", "")
 
-        self.color_width = rospy.get_param("~color_width", 1280)
-        self.color_height = rospy.get_param("~color_height", 720)
-        self.color_fps = rospy.get_param("~color_fps", 30)
+        self.color_width = int(rospy.get_param("~color_width", 1280))
+        self.color_height = int(rospy.get_param("~color_height", 720))
+        self.color_fps = int(rospy.get_param("~color_fps", 30))
+        self.depth_width = int(rospy.get_param("~depth_width", 1280))
+        self.depth_height = int(rospy.get_param("~depth_height", 800))
+        self.depth_fps = int(rospy.get_param("~depth_fps", 30))
 
-        self.depth_width = rospy.get_param("~depth_width", 1280)
-        self.depth_height = rospy.get_param("~depth_height", 800)
-        self.depth_fps = rospy.get_param("~depth_fps", 30)
-
+        self.align_to_color = bool(rospy.get_param("~align_to_color", True))
         self.rotate_180 = bool(rospy.get_param("~rotate_180", False))
         self.min_depth_m = float(rospy.get_param("~min_depth_m", 0.10))
         self.max_depth_m = float(rospy.get_param("~max_depth_m", 10.0))
@@ -175,18 +173,16 @@ class PiperOrbbec:
             rospy.get_param("~publish_rate", max(1.0, self.color_fps))
         )
 
+        default_prefix = f"{self.camera_role}_cam"
         self.color_frame_id = rospy.get_param(
-            "~color_frame_id", "eef_camera_color_optical_frame"
+            "~color_frame_id", f"{default_prefix}_color_optical_frame"
         )
         self.depth_frame_id = rospy.get_param(
-            "~depth_frame_id", "eef_camera_depth_optical_frame"
+            "~depth_frame_id", f"{default_prefix}_depth_optical_frame"
         )
         self.depth_registered_frame_id = rospy.get_param(
             "~depth_registered_frame_id", self.color_frame_id
         )
-
-        self._static_tf_broadcaster = tf2_ros.StaticTransformBroadcaster()
-        self._publish_cam_to_flange_tf()
 
         self.distortion_model = rospy.get_param("~distortion_model", "plumb_bob")
         self.color_distortion_override = self._normalize_distortion_param(
@@ -196,7 +192,7 @@ class PiperOrbbec:
             rospy.get_param("~depth_distortion", DEFAULT_ZERO_DISTORTION)
         )
 
-        self.pipeline = None
+        self.pipeline: Optional[Pipeline] = None
         self.device = None
         self.align_filter = None
 
@@ -216,16 +212,11 @@ class PiperOrbbec:
             self._topic("depth_registered/image_raw"), Image, queue_size=1
         )
         self.depth_registered_info_pub = rospy.Publisher(
-            self._topic("depth_registered/camera_info"),
-            CameraInfo,
-            queue_size=1,
+            self._topic("depth_registered/camera_info"), CameraInfo, queue_size=1
         )
         self.lrm_pub = rospy.Publisher(
             self._topic("lrm_distance"), Float32, queue_size=1
         )
-
-        self.color_model_source = "unknown"
-        self.depth_model_source = "unknown"
 
     @staticmethod
     def _normalize_topic_ns(raw: str) -> str:
@@ -236,43 +227,6 @@ class PiperOrbbec:
 
     def _topic(self, suffix: str) -> str:
         return f"{self.output_ns}/{suffix.lstrip('/')}"
-
-    def _publish_cam_to_flange_tf(self):
-        if not rospy.get_param("~publish_tf", False):
-            rospy.loginfo("publish_tf 为 False，跳过手眼标定 TF 发布（交由 URDF 处理）")
-            return
-
-        matrix_raw = rospy.get_param("~hand_eye/T_cam_to_flange", None)
-
-        if matrix_raw is None:
-            rospy.logwarn("未找到手眼标定参数 ~hand_eye/T_cam_to_flange，TF 不发布")
-            return
-
-        try:
-            T = np.array(matrix_raw)
-
-            trans = T[:3, 3]
-            quat = tf_trans.quaternion_from_matrix(T)
-
-            static_transform_stamped = TransformStamped()
-            static_transform_stamped.header.stamp = rospy.Time.now()
-            static_transform_stamped.header.frame_id = rospy.get_param(
-                "~hand_eye/flange_id", "link6"
-            )
-            static_transform_stamped.child_frame_id = self.color_frame_id
-
-            static_transform_stamped.transform.translation.x = float(trans[0])
-            static_transform_stamped.transform.translation.y = float(trans[1])
-            static_transform_stamped.transform.translation.z = float(trans[2])
-            static_transform_stamped.transform.rotation.x = float(quat[0])
-            static_transform_stamped.transform.rotation.y = float(quat[1])
-            static_transform_stamped.transform.rotation.z = float(quat[2])
-            static_transform_stamped.transform.rotation.w = float(quat[3])
-
-            self._static_tf_broadcaster.sendTransform(static_transform_stamped)
-            rospy.loginfo("已发布相机到机械臂法兰的静态 TF")
-        except Exception as exc:
-            rospy.logwarn("手眼标定参数解析失败，TF 不发布: %s", exc)
 
     @staticmethod
     def _normalize_distortion_param(raw: Any) -> List[float]:
@@ -311,16 +265,18 @@ class PiperOrbbec:
 
         prop = getattr(OBPropertyID, "OB_PROP_DISP_SEARCH_RANGE_MODE_INT", None)
         if prop is None:
-            rospy.logwarn("pyorbbecsdk 未暴露 OB_PROP_DISP_SEARCH_RANGE_MODE_INT")
+            rospy.logwarn(
+                "pyorbbecsdk does not expose OB_PROP_DISP_SEARCH_RANGE_MODE_INT"
+            )
             return False
 
         try:
             self.device.set_int_property(prop, 2)
             applied = self.device.get_int_property(prop)
-            rospy.loginfo("视差搜索范围模式值: %s", applied)
+            rospy.loginfo("Disparity search range mode: %s", applied)
             return applied == 2
         except Exception as exc:
-            rospy.logwarn("视差搜索范围设置失败: %s", exc)
+            rospy.logwarn("Failed to set disparity search range: %s", exc)
             return False
 
     def _build_depth_m(self, depth_frame: VideoFrame) -> np.ndarray:
@@ -367,12 +323,14 @@ class PiperOrbbec:
                 return values
         if hasattr(obj, "coeffs"):
             return self._parse_distortion_object(getattr(obj, "coeffs"))
+
         fields = []
         for name in ("k1", "k2", "p1", "p2", "k3", "k4", "k5", "k6"):
             if hasattr(obj, name):
                 fields.append(float(getattr(obj, name)))
         if len(fields) >= 4:
             return fields
+
         for name in (
             "color_distortion",
             "depth_distortion",
@@ -385,24 +343,9 @@ class PiperOrbbec:
                     return parsed
         return None
 
-    def _resolve_distortion(
-        self, profile: Any, override: List[float], label: str
-    ) -> List[float]:
+    def _resolve_distortion(self, profile: Any, override: List[float]) -> List[float]:
         extracted = self._extract_distortion_from_profile(profile)
-        if extracted is not None:
-            source = "sdk_profile"
-            distortion = extracted
-        else:
-            distortion = list(override)
-            source = "override_param"
-            if not any(abs(v) > 1e-12 for v in distortion):
-                source = "override_zero"
-
-        if label == "color":
-            self.color_model_source = source
-        else:
-            self.depth_model_source = source
-        return distortion
+        return extracted if extracted is not None else list(override)
 
     def _build_camera_info(
         self,
@@ -456,7 +399,7 @@ class PiperOrbbec:
         msg.header.frame_id = frame_id
         return msg
 
-    def setup(self):
+    def setup(self) -> None:
         self.pipeline = self._create_pipeline()
         self.device = self.pipeline.get_device()
         config = Config()
@@ -467,14 +410,13 @@ class PiperOrbbec:
         depth_profile_list = self.pipeline.get_stream_profile_list(
             OBSensorType.DEPTH_SENSOR
         )
-
         color_profile = self._select_color_profile(color_profile_list)
         depth_profile = self._select_depth_profile(depth_profile_list)
 
         config.enable_stream(color_profile)
         config.enable_stream(depth_profile)
 
-        if hasattr(config, "set_align_mode"):
+        if self.align_to_color and hasattr(config, "set_align_mode"):
             try:
                 config.set_align_mode(OBAlignMode.SW_MODE)
             except Exception:
@@ -495,35 +437,24 @@ class PiperOrbbec:
         self.pipeline.enable_frame_sync()
         self.pipeline.start(config)
 
-        if AlignFilter is not None and OBStreamType is not None:
-            try:
-                self.align_filter = AlignFilter(
-                    align_to_stream=OBStreamType.COLOR_STREAM
-                )
-                rospy.loginfo("已启用 AlignFilter: Depth -> Color")
-            except Exception as exc:
-                self.align_filter = None
-                rospy.logwarn("AlignFilter 初始化失败: %s", exc)
-        else:
-            rospy.logwarn(
-                "当前 pyorbbecsdk 未暴露 AlignFilter，将不发布 depth_registered"
-            )
+        if self.align_to_color:
+            self._setup_align_filter()
 
         disparity_ok = self._set_disparity_search_range_256()
 
         if self.enable_lrm:
             try:
                 self.device.set_bool_property(OBPropertyID.OB_PROP_LDP_BOOL, True)
-                rospy.loginfo("LRM 激光补盲模块已开启")
+                rospy.loginfo("LRM module enabled")
             except Exception as exc:
-                rospy.logwarn("LRM 开启失败: %s", exc)
+                rospy.logwarn("Failed to enable LRM module: %s", exc)
 
         rospy.loginfo(
-            "相机启动成功, role=%s, ns=%s, usb_port=%s, camera_index=%s, disp256=%s, rotate_180=%s, color_frame=%s, depth_frame=%s, depth_registered_frame=%s",
+            "Camera ready: role=%s ns=%s selector=%s serial=%s disp256=%s rotate_180=%s color_frame=%s depth_frame=%s registered_frame=%s",
             self.camera_role,
             self.output_ns,
-            self.usb_port or "<auto>",
-            self.camera_index or "<auto>",
+            self.usb_port or self.camera_index or "<auto>",
+            self.serial_number or "<auto>",
             "OK" if disparity_ok else "NO",
             self.rotate_180,
             self.color_frame_id,
@@ -531,16 +462,33 @@ class PiperOrbbec:
             self.depth_registered_frame_id,
         )
 
+    def _setup_align_filter(self) -> None:
+        if AlignFilter is None or OBStreamType is None:
+            rospy.logwarn(
+                "pyorbbecsdk does not expose AlignFilter; depth_registered will not be published"
+            )
+            self.align_filter = None
+            return
+
+        try:
+            self.align_filter = AlignFilter(align_to_stream=OBStreamType.COLOR_STREAM)
+            rospy.loginfo("AlignFilter enabled: depth -> color")
+        except Exception as exc:
+            self.align_filter = None
+            rospy.logwarn("Failed to initialize AlignFilter: %s", exc)
+
     def _create_pipeline(self) -> Pipeline:
         selector = self.usb_port or self.camera_index
         if self.usb_port and self.camera_index:
-            raise RuntimeError("usb_port 和 camera_index 只能指定一个")
+            raise RuntimeError("usb_port and camera_index are mutually exclusive")
         if self.serial_number and selector:
-            raise RuntimeError("serial_number 与 usb_port/camera_index 只能指定一种")
+            raise RuntimeError(
+                "serial_number and usb_port/camera_index are mutually exclusive"
+            )
 
         if not self.serial_number and not selector:
             rospy.logwarn(
-                "未指定 %s 相机 usb_port/camera_index，将使用 pyorbbecsdk 默认设备",
+                "No device selector specified for %s; using pyorbbecsdk default device",
                 self.camera_role,
             )
             return Pipeline()
@@ -550,7 +498,7 @@ class PiperOrbbec:
 
         if self.serial_number:
             rospy.loginfo(
-                "按 serial_number 选择 %s 相机: %s",
+                "Selecting %s by serial_number: %s",
                 self.camera_role,
                 self.serial_number,
             )
@@ -558,7 +506,7 @@ class PiperOrbbec:
         else:
             resolved_selector = resolve_usb_port_selector(selector)
             rospy.loginfo(
-                "按 usb_port/index 选择 %s 相机: %s -> %s",
+                "Selecting %s by usb/index: %s -> %s",
                 self.camera_role,
                 selector,
                 resolved_selector,
@@ -567,7 +515,7 @@ class PiperOrbbec:
 
         if device is None:
             raise RuntimeError(
-                f"未找到 {self.camera_role} 相机: "
+                f"Cannot find {self.camera_role} camera: "
                 f"serial_number={self.serial_number or '<empty>'}, "
                 f"usb_port={self.usb_port or '<empty>'}, "
                 f"camera_index={self.camera_index or '<empty>'}"
@@ -576,18 +524,19 @@ class PiperOrbbec:
         try:
             info = device.get_device_info()
             rospy.loginfo(
-                "已选择 %s 相机: name=%s, serial=%s, uid=%s",
+                "Selected %s camera: name=%s serial=%s uid=%s",
                 self.camera_role,
                 info.get_name(),
                 info.get_serial_number(),
                 info.get_uid(),
             )
         except Exception as exc:
-            rospy.logwarn("读取 %s 相机设备信息失败: %s", self.camera_role, exc)
+            rospy.logwarn("Failed to read %s device info: %s", self.camera_role, exc)
 
         return Pipeline(device)
 
-    def spin(self):
+    def spin(self) -> None:
+        assert self.pipeline is not None
         rate = rospy.Rate(self.publish_rate)
 
         while not rospy.is_shutdown():
@@ -602,127 +551,156 @@ class PiperOrbbec:
                 rate.sleep()
                 continue
 
-            aligned_depth_frame = None
-            if self.align_filter is not None:
-                try:
-                    aligned_frames = self.align_filter.process(frames)
-                    if aligned_frames is not None:
-                        aligned_depth_frame = (
-                            aligned_frames.as_frame_set().get_depth_frame()
-                        )
-                except Exception as exc:
-                    rospy.logwarn_throttle(2.0, "AlignFilter 处理失败: %s", exc)
-                    aligned_depth_frame = None
-
+            aligned_depth_frame = self._try_get_aligned_depth_frame(frames)
             color_image = frame_to_bgr_image(color_frame)
             if color_image is None:
                 rate.sleep()
                 continue
 
             raw_depth_m = self._build_depth_m(depth_frame)
-            aligned_depth_m = None
-            if aligned_depth_frame is not None:
-                try:
-                    aligned_depth_m = self._build_depth_m(aligned_depth_frame)
-                except Exception as exc:
-                    rospy.logwarn_throttle(2.0, "对齐深度解析失败: %s", exc)
-                    aligned_depth_m = None
+            aligned_depth_m = self._try_build_aligned_depth_m(aligned_depth_frame)
 
             color_profile = color_frame.get_stream_profile().as_video_stream_profile()
             depth_profile = depth_frame.get_stream_profile().as_video_stream_profile()
             K_color = intrinsic_to_matrix(color_profile.get_intrinsic())
             K_depth = intrinsic_to_matrix(depth_profile.get_intrinsic())
             D_color = self._resolve_distortion(
-                color_profile, self.color_distortion_override, "color"
+                color_profile, self.color_distortion_override
             )
             D_depth = self._resolve_distortion(
-                depth_profile, self.depth_distortion_override, "depth"
+                depth_profile, self.depth_distortion_override
             )
 
             if self.rotate_180:
-                color_image = cv2.rotate(color_image, cv2.ROTATE_180)
-                raw_depth_m = cv2.rotate(raw_depth_m, cv2.ROTATE_180)
-                K_color = rotate_intrinsics_180(
-                    K_color, color_image.shape[1], color_image.shape[0]
-                )
-                K_depth = rotate_intrinsics_180(
-                    K_depth, raw_depth_m.shape[1], raw_depth_m.shape[0]
-                )
-                if aligned_depth_m is not None:
-                    aligned_depth_m = cv2.rotate(aligned_depth_m, cv2.ROTATE_180)
-
-            publish_registered = False
-            if (
-                aligned_depth_m is not None
-                and aligned_depth_m.shape[:2] == color_image.shape[:2]
-            ):
-                publish_registered = True
-            elif aligned_depth_m is not None:
-                rospy.logwarn_throttle(
-                    2.0,
-                    "depth_registered 尺寸异常: aligned=%s color=%s，当前帧不发布 depth_registered",
-                    aligned_depth_m.shape[:2],
-                    color_image.shape[:2],
+                color_image, raw_depth_m, aligned_depth_m, K_color, K_depth = (
+                    self._rotate_outputs(
+                        color_image, raw_depth_m, aligned_depth_m, K_color, K_depth
+                    )
                 )
 
             now = rospy.Time.now()
-
-            color_msg = self._to_msg(color_image, "bgr8", now, self.color_frame_id)
-            color_info_msg = self._build_camera_info(
-                color_image.shape[1],
-                color_image.shape[0],
-                K_color,
-                D_color,
-                self.color_frame_id,
-                now,
+            self._publish_color(color_image, K_color, D_color, now)
+            self._publish_depth(raw_depth_m, K_depth, D_depth, now)
+            self._publish_registered_depth_if_valid(
+                aligned_depth_m, color_image, K_color, D_color, now
             )
-            depth_raw_msg = self._to_msg(raw_depth_m, "32FC1", now, self.depth_frame_id)
-            depth_raw_info_msg = self._build_camera_info(
-                raw_depth_m.shape[1],
-                raw_depth_m.shape[0],
-                K_depth,
-                D_depth,
-                self.depth_frame_id,
-                now,
-            )
-
-            self.color_pub.publish(color_msg)
-            self.color_info_pub.publish(color_info_msg)
-            self.depth_raw_pub.publish(depth_raw_msg)
-            self.depth_raw_info_pub.publish(depth_raw_info_msg)
-
-            if publish_registered:
-                K_depth_registered = np.array(K_color, dtype=np.float64, copy=True)
-                depth_registered_msg = self._to_msg(
-                    aligned_depth_m,
-                    "32FC1",
-                    now,
-                    self.depth_registered_frame_id,
-                )
-                depth_registered_info_msg = self._build_camera_info(
-                    aligned_depth_m.shape[1],
-                    aligned_depth_m.shape[0],
-                    K_depth_registered,
-                    D_color,
-                    self.depth_registered_frame_id,
-                    now,
-                )
-                self.depth_registered_pub.publish(depth_registered_msg)
-                self.depth_registered_info_pub.publish(depth_registered_info_msg)
-
-            if self.enable_lrm:
-                try:
-                    lrm_dist_mm = self.device.get_int_property(
-                        OBPropertyID.OB_PROP_LDP_MEASURE_DISTANCE_INT
-                    )
-                    self.lrm_pub.publish(Float32(data=float(lrm_dist_mm) / 1000.0))
-                except Exception:
-                    pass
+            self._publish_lrm_distance()
 
             rate.sleep()
 
+    def _try_get_aligned_depth_frame(self, frames) -> Optional[VideoFrame]:
+        if self.align_filter is None:
+            return None
+        try:
+            aligned_frames = self.align_filter.process(frames)
+            if aligned_frames is None:
+                return None
+            return aligned_frames.as_frame_set().get_depth_frame()
+        except Exception as exc:
+            rospy.logwarn_throttle(2.0, "AlignFilter processing failed: %s", exc)
+            return None
+
+    def _try_build_aligned_depth_m(
+        self, aligned_depth_frame: Optional[VideoFrame]
+    ) -> Optional[np.ndarray]:
+        if aligned_depth_frame is None:
+            return None
+        try:
+            return self._build_depth_m(aligned_depth_frame)
+        except Exception as exc:
+            rospy.logwarn_throttle(2.0, "Failed to parse aligned depth: %s", exc)
+            return None
+
+    def _rotate_outputs(
+        self,
+        color_image: np.ndarray,
+        raw_depth_m: np.ndarray,
+        aligned_depth_m: Optional[np.ndarray],
+        K_color: np.ndarray,
+        K_depth: np.ndarray,
+    ):
+        color_image = cv2.rotate(color_image, cv2.ROTATE_180)
+        raw_depth_m = cv2.rotate(raw_depth_m, cv2.ROTATE_180)
+        K_color = rotate_intrinsics_180(
+            K_color, color_image.shape[1], color_image.shape[0]
+        )
+        K_depth = rotate_intrinsics_180(
+            K_depth, raw_depth_m.shape[1], raw_depth_m.shape[0]
+        )
+        if aligned_depth_m is not None:
+            aligned_depth_m = cv2.rotate(aligned_depth_m, cv2.ROTATE_180)
+        return color_image, raw_depth_m, aligned_depth_m, K_color, K_depth
+
+    def _publish_color(
+        self, image: np.ndarray, K: np.ndarray, D: List[float], stamp: rospy.Time
+    ) -> None:
+        self.color_pub.publish(self._to_msg(image, "bgr8", stamp, self.color_frame_id))
+        self.color_info_pub.publish(
+            self._build_camera_info(
+                image.shape[1], image.shape[0], K, D, self.color_frame_id, stamp
+            )
+        )
+
+    def _publish_depth(
+        self, depth_m: np.ndarray, K: np.ndarray, D: List[float], stamp: rospy.Time
+    ) -> None:
+        self.depth_raw_pub.publish(
+            self._to_msg(depth_m, "32FC1", stamp, self.depth_frame_id)
+        )
+        self.depth_raw_info_pub.publish(
+            self._build_camera_info(
+                depth_m.shape[1], depth_m.shape[0], K, D, self.depth_frame_id, stamp
+            )
+        )
+
+    def _publish_registered_depth_if_valid(
+        self,
+        aligned_depth_m: Optional[np.ndarray],
+        color_image: np.ndarray,
+        K_color: np.ndarray,
+        D_color: List[float],
+        stamp: rospy.Time,
+    ) -> None:
+        if aligned_depth_m is None:
+            return
+        if aligned_depth_m.shape[:2] != color_image.shape[:2]:
+            rospy.logwarn_throttle(
+                2.0,
+                "Skip depth_registered because aligned depth size %s != color size %s",
+                aligned_depth_m.shape[:2],
+                color_image.shape[:2],
+            )
+            return
+
+        self.depth_registered_pub.publish(
+            self._to_msg(
+                aligned_depth_m, "32FC1", stamp, self.depth_registered_frame_id
+            )
+        )
+        self.depth_registered_info_pub.publish(
+            self._build_camera_info(
+                aligned_depth_m.shape[1],
+                aligned_depth_m.shape[0],
+                K_color,
+                D_color,
+                self.depth_registered_frame_id,
+                stamp,
+            )
+        )
+
+    def _publish_lrm_distance(self) -> None:
+        if not self.enable_lrm or self.device is None:
+            return
+        try:
+            lrm_dist_mm = self.device.get_int_property(
+                OBPropertyID.OB_PROP_LDP_MEASURE_DISTANCE_INT
+            )
+            self.lrm_pub.publish(Float32(data=float(lrm_dist_mm) / 1000.0))
+        except Exception:
+            pass
+
 
 if __name__ == "__main__":
-    node = PiperOrbbec()
+    node = OrbbecRgbdNode()
     node.setup()
     node.spin()
