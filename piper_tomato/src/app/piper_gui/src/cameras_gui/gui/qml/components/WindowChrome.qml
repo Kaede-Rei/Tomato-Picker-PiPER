@@ -8,31 +8,39 @@ Item {
     property var target_window
     property string title: ""
 
-    signal close_requested()
-    signal minimize_requested()
-    signal maximize_requested()
+    signal close_requested
+    signal minimize_requested
+    signal maximize_requested
+
+    property int drag_height: 24
 
     height: 52
     z: 9999
 
     MouseArea {
-        anchors.fill: parent
+        id: drag_area
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        height: chrome.drag_height
         acceptedButtons: Qt.LeftButton
+        hoverEnabled: false
+        z: 0
 
-        onPressed: function(mouse) {
+        onPressed: function (mouse) {
             if (!chrome.target_window)
-                return
+                return;
 
             if (chrome.target_window.visibility === Window.Maximized || chrome.target_window.is_maximized) {
-                chrome.target_window.showNormal()
-                chrome.target_window.is_maximized = false
+                chrome.target_window.showNormal();
+                chrome.target_window.is_maximized = false;
             }
 
-            chrome.target_window.startSystemMove()
+            chrome.target_window.startSystemMove();
         }
 
         onDoubleClicked: {
-            chrome.maximize_requested()
+            chrome.maximize_requested();
         }
     }
 
@@ -48,6 +56,7 @@ Item {
         color: Qt.rgba(1, 1, 1, 0.54)
         border.color: Qt.rgba(0.76, 0.72, 0.82, 0.95)
         border.width: 1
+        z: 2
 
         Rectangle {
             anchors.fill: parent
@@ -63,6 +72,7 @@ Item {
         anchors.top: parent.top
         anchors.topMargin: 17
         spacing: 10
+        z: 3
 
         Rectangle {
             width: 12
@@ -100,7 +110,7 @@ Item {
             width: 12
             height: 12
             radius: 6
-            color: "#28C840"
+            color: max_area.containsMouse ? "#30D158" : "#28C840"
             border.color: Qt.rgba(0, 0, 0, 0.16)
             border.width: 1
 
@@ -122,5 +132,6 @@ Item {
         color: C.Theme.text_secondary
         font.family: C.Theme.font_stack
         font.pixelSize: 12
+        z: 1
     }
 }

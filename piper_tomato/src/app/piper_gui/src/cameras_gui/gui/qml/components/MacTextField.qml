@@ -25,11 +25,15 @@ TextField {
         border.width: field.activeFocus ? 2 : 1
 
         Behavior on border.color {
-            ColorAnimation { duration: 140 }
+            ColorAnimation {
+                duration: 140
+            }
         }
 
         Behavior on color {
-            ColorAnimation { duration: 140 }
+            ColorAnimation {
+                duration: 140
+            }
         }
     }
 }

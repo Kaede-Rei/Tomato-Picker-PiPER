@@ -56,30 +56,28 @@ C.PagePanel {
                             elide: Text.ElideRight
 
                             text: {
-                                var st = page.camera_statuses[camera_card.modelData] || {}
-                                var color_ready = st.color_received || st.colorReady
-                                var depth_ready = st.depth_received || st.depthReady
-                                var color_size = st.color_size || st.colorSize || "--"
-                                var depth_size = st.depth_size || st.depthSize || "--"
-                                var depth_frame = st.depth_frame || st.depthFrame || "--"
+                                var st = page.camera_statuses[camera_card.modelData] || {};
+                                var color_ready = st.color_received || st.colorReady;
+                                var depth_ready = st.depth_received || st.depthReady;
+                                var color_size = st.color_size || st.colorSize || "--";
+                                var depth_size = st.depth_size || st.depthSize || "--";
+                                var depth_frame = st.depth_frame || st.depthFrame || "--";
 
-                                return "RGB: " + (color_ready ? color_size : "--") +
-                                       "    Depth: " + (depth_ready ? depth_size : "--") +
-                                       "    Frame: " + depth_frame
+                                return "RGB: " + (color_ready ? color_size : "--") + "    Depth: " + (depth_ready ? depth_size : "--") + "    Frame: " + depth_frame;
                             }
                         }
 
                         C.StatusPill {
                             label: {
-                                var st = page.camera_statuses[camera_card.modelData] || {}
-                                var ready = st.color_received || st.colorReady
-                                return ready ? "LIVE" : "WAIT"
+                                var st = page.camera_statuses[camera_card.modelData] || {};
+                                var ready = st.color_received || st.colorReady;
+                                return ready ? "LIVE" : "WAIT";
                             }
 
                             accent: {
-                                var st = page.camera_statuses[camera_card.modelData] || {}
-                                var ready = st.color_received || st.colorReady
-                                return ready ? "#32D74B" : "#FF9F0A"
+                                var st = page.camera_statuses[camera_card.modelData] || {};
+                                var ready = st.color_received || st.colorReady;
+                                return ready ? "#32D74B" : "#FF9F0A";
                             }
                         }
                     }

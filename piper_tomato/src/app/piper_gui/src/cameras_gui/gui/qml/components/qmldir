@@ -13,3 +13,4 @@ PagePanel 1.0 PagePanel.qml
 FormLabel 1.0 FormLabel.qml
 CameraPreviewPanel 1.0 CameraPreviewPanel.qml
 WindowChrome 1.0 WindowChrome.qml
+OperationOverlay 1.0 OperationOverlay.qml

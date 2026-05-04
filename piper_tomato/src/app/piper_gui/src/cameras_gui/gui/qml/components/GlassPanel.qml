@@ -15,11 +15,15 @@ Rectangle {
     clip: false
 
     Behavior on color {
-        ColorAnimation { duration: 160 }
+        ColorAnimation {
+            duration: 160
+        }
     }
 
     Behavior on border.color {
-        ColorAnimation { duration: 160 }
+        ColorAnimation {
+            duration: 160
+        }
     }
 
     Rectangle {

@@ -20,9 +20,7 @@ QtObject {
 
     readonly property color dark_stage: "#050D1D"
 
-    readonly property string font_stack:
-        "San Francisco, SF Pro Text, PingFang SC, Helvetica Neue, Arial, sans-serif"
+    readonly property string font_stack: "San Francisco, SF Pro Text, PingFang SC, Helvetica Neue, Arial, sans-serif"
 
-    readonly property string mono_font_stack:
-        "JetBrains Mono, SF Mono, Menlo, Consolas, monospace"
+    readonly property string mono_font_stack: "JetBrains Mono, SF Mono, Menlo, Consolas, monospace"
 }

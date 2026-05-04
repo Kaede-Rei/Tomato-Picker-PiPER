@@ -32,9 +32,7 @@ Button {
 
     background: Rectangle {
         radius: 13
-        color: btn.down ? btn.pressed_color :
-               btn.hovered ? btn.hover_color :
-                             btn.normal_color
+        color: btn.down ? btn.pressed_color : btn.hovered ? btn.hover_color : btn.normal_color
 
         border.color: Qt.rgba(1, 1, 1, 0.26)
         border.width: 1

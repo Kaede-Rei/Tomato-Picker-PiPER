@@ -19,6 +19,8 @@ C.GlassPanel {
     property bool roi_closed: false
 
     property bool image_frame_latched: false
+    property real latched_painted_width: 0
+    property real latched_painted_height: 0
 
     readonly property bool stream_ready: {
         var st = panel.camera_statuses[panel.preview_camera] || {};
@@ -27,7 +29,7 @@ C.GlassPanel {
 
     readonly property bool source_has_real_frame: panel.preview_source.indexOf("rev=0") < 0
     readonly property bool image_geometry_ready: preview_image.paintedWidth > 4 && preview_image.paintedHeight > 4
-    readonly property bool preview_ready: panel.stream_ready && panel.image_frame_latched && panel.image_geometry_ready
+    readonly property bool preview_ready: panel.stream_ready && panel.image_frame_latched && panel.latched_painted_width > 4 && panel.latched_painted_height > 4
 
     signal preview_camera_requested(string camera_name)
     signal roi_commit_requested(var payload)
@@ -35,13 +37,12 @@ C.GlassPanel {
 
     onPreview_cameraChanged: {
         panel.image_frame_latched = false;
+        panel.latched_painted_width = 0;
+        panel.latched_painted_height = 0;
     }
 
     onPreview_sourceChanged: {
-        if (panel.stream_ready && panel.source_has_real_frame && preview_image.status === Image.Ready && panel.image_geometry_ready) {
-            panel.image_frame_latched = true;
-            roi_canvas.requestPaint();
-        }
+        panel.try_latch_frame();
     }
 
     onStream_readyChanged: {
@@ -60,8 +61,22 @@ C.GlassPanel {
         onTriggered: {
             if (!panel.stream_ready) {
                 panel.image_frame_latched = false;
+                panel.latched_painted_width = 0;
+                panel.latched_painted_height = 0;
                 panel.clear_roi();
             }
+        }
+    }
+
+    function try_latch_frame() {
+        if (!panel.stream_ready || !panel.source_has_real_frame || preview_image.status !== Image.Ready)
+            return;
+
+        if (preview_image.paintedWidth > 4 && preview_image.paintedHeight > 4) {
+            panel.latched_painted_width = preview_image.paintedWidth;
+            panel.latched_painted_height = preview_image.paintedHeight;
+            panel.image_frame_latched = true;
+            roi_canvas.requestPaint();
         }
     }
 
@@ -89,8 +104,8 @@ C.GlassPanel {
     }
 
     function image_rect() {
-        var iw = preview_image.paintedWidth;
-        var ih = preview_image.paintedHeight;
+        var iw = preview_image.paintedWidth > 4 ? preview_image.paintedWidth : panel.latched_painted_width;
+        var ih = preview_image.paintedHeight > 4 ? preview_image.paintedHeight : panel.latched_painted_height;
         var ox = preview_image.x + (preview_image.width - iw) / 2;
         var oy = preview_image.y + (preview_image.height - ih) / 2;
         return {
@@ -227,26 +242,9 @@ C.GlassPanel {
 
                 opacity: panel.image_frame_latched ? 1.0 : 0.10
 
-                onStatusChanged: {
-                    if (status === Image.Ready && panel.stream_ready && panel.source_has_real_frame && panel.image_geometry_ready) {
-                        panel.image_frame_latched = true;
-                        roi_canvas.requestPaint();
-                    }
-                }
-
-                onPaintedWidthChanged: {
-                    if (status === Image.Ready && panel.stream_ready && panel.source_has_real_frame && panel.image_geometry_ready) {
-                        panel.image_frame_latched = true;
-                        roi_canvas.requestPaint();
-                    }
-                }
-
-                onPaintedHeightChanged: {
-                    if (status === Image.Ready && panel.stream_ready && panel.source_has_real_frame && panel.image_geometry_ready) {
-                        panel.image_frame_latched = true;
-                        roi_canvas.requestPaint();
-                    }
-                }
+                onStatusChanged: panel.try_latch_frame()
+                onPaintedWidthChanged: panel.try_latch_frame()
+                onPaintedHeightChanged: panel.try_latch_frame()
 
                 Behavior on opacity {
                     NumberAnimation {

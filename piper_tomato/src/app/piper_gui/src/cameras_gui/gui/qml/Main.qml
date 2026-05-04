@@ -53,6 +53,12 @@ ApplicationWindow {
     property real min_bottom_panel_height: 180
     property real max_bottom_panel_height: Math.max(470, root.height * 0.56)
 
+    property bool operation_active: false
+    property string operation_title: "处理中"
+    property string operation_detail: "正在执行操作..."
+    property real operation_progress: -1
+    property var pending_operation: null
+
     onVisibilityChanged: {
         root.is_maximized = root.visibility === Window.Maximized;
     }
@@ -82,6 +88,8 @@ ApplicationWindow {
         function onTask_status_changed(message) {
             root.task_status = message;
             root.append_log(message);
+            if (root.operation_active)
+                root.operation_detail = message;
         }
 
         function onLog_changed(message) {
@@ -91,6 +99,58 @@ ApplicationWindow {
         function onState_changed(raw_state) {
             root.load_state(JSON.parse(raw_state));
         }
+    }
+
+    Timer {
+        id: operation_start_timer
+        interval: 70
+        repeat: false
+
+        onTriggered: {
+            if (!root.pending_operation) {
+                root.finish_operation("");
+                return;
+            }
+
+            var work = root.pending_operation;
+            root.pending_operation = null;
+
+            try {
+                var result_message = work();
+                if (result_message !== undefined && result_message !== null && String(result_message).length > 0)
+                    root.operation_detail = String(result_message);
+            } catch (err) {
+                root.operation_title = "操作失败";
+                root.operation_detail = String(err);
+                root.append_log("操作失败：" + String(err));
+            }
+
+            operation_finish_timer.restart();
+        }
+    }
+
+    Timer {
+        id: operation_finish_timer
+        interval: 520
+        repeat: false
+
+        onTriggered: root.operation_active = false
+    }
+
+    function begin_operation(title, detail, work) {
+        operation_finish_timer.stop();
+        root.operation_title = title || "处理中";
+        root.operation_detail = detail || "正在执行操作...";
+        root.operation_progress = -1;
+        root.pending_operation = work;
+        root.operation_active = true;
+        operation_start_timer.restart();
+    }
+
+    function finish_operation(detail) {
+        if (detail && detail.length > 0)
+            root.operation_detail = detail;
+        operation_finish_timer.restart();
     }
 
     function toggle_maximize() {
@@ -138,16 +198,19 @@ ApplicationWindow {
     }
 
     function commit_roi(payload) {
-        var result = JSON.parse(backend.commit_polygon_selection(JSON.stringify(payload)));
+        root.begin_operation("计算目标点", "正在根据 ROI 计算深度与目标坐标...", function () {
+            var result = JSON.parse(backend.commit_polygon_selection(JSON.stringify(payload)));
 
-        if (!result.ok) {
-            root.target_text = "目标选择失败：\n" + result.message;
-            root.append_log("目标选择失败：" + result.message);
-            return;
-        }
+            if (!result.ok) {
+                root.target_text = "目标选择失败：\n" + result.message;
+                root.append_log("目标选择失败：" + result.message);
+                return "目标选择失败：" + result.message;
+            }
 
-        root.update_target_text(result);
-        root.append_log("目标已锁定：" + result.camera + " -> " + result.targetFrame);
+            root.update_target_text(result);
+            root.append_log("目标已锁定：" + result.camera + " -> " + result.targetFrame);
+            return "目标已锁定：" + result.camera + " -> " + result.targetFrame;
+        });
     }
 
     Rectangle {
@@ -270,7 +333,12 @@ ApplicationWindow {
                         C.MacSecondaryButton {
                             text: "连接 ROS"
                             Layout.fillWidth: true
-                            onClicked: backend.connect_ros(root.state_json())
+                            onClicked: {
+                                root.begin_operation("连接 ROS", "正在初始化 ROS 通信与相机状态...", function () {
+                                    backend.connect_ros(root.state_json());
+                                    return "ROS 连接请求已发送";
+                                });
+                            }
                         }
                     }
                 }
@@ -299,8 +367,11 @@ ApplicationWindow {
                         task_status: root.task_status
 
                         onPreview_camera_requested: function (camera_name) {
-                            root.preview_camera = camera_name;
-                            backend.set_preview_camera(camera_name);
+                            root.begin_operation("切换相机", "正在切换到 " + camera_name + " 图像流...", function () {
+                                root.preview_camera = camera_name;
+                                backend.set_preview_camera(camera_name);
+                                return "已切换到 " + camera_name;
+                            });
                         }
 
                         onRoi_commit_requested: function (payload) {
@@ -351,7 +422,6 @@ ApplicationWindow {
                             }
                         }
                     }
-
 
                     Item {
                         id: preview_left_handle
@@ -444,17 +514,34 @@ ApplicationWindow {
                                 visible: root.current_page === 3
 
                                 onUpsert_task_requested: {
-                                    var r = JSON.parse(backend.upsert_current_task(root.state_json()));
-                                    root.append_log(r.message);
+                                    root.begin_operation("写入任务", "正在把当前框选目标写入任务队列...", function () {
+                                        var r = JSON.parse(backend.upsert_current_task(root.state_json()));
+                                        root.append_log(r.message);
+                                        return r.message;
+                                    });
                                 }
 
                                 onExecute_group_requested: {
-                                    var r = JSON.parse(backend.execute_group(root.state_json()));
-                                    root.append_log(r.message);
+                                    root.begin_operation("执行任务组", "正在发送任务组执行请求...", function () {
+                                        var r = JSON.parse(backend.execute_group(root.state_json()));
+                                        root.append_log(r.message);
+                                        return r.message;
+                                    });
                                 }
 
-                                onCancel_requested: backend.cancel_task()
-                                onGo_home_requested: backend.go_home()
+                                onCancel_requested: {
+                                    root.begin_operation("取消任务", "正在发送取消指令...", function () {
+                                        backend.cancel_task();
+                                        return "取消指令已发送";
+                                    });
+                                }
+
+                                onGo_home_requested: {
+                                    root.begin_operation("机械臂回零", "正在发送回零指令，请保持安全距离...", function () {
+                                        backend.go_home();
+                                        return "回零指令已发送";
+                                    });
+                                }
                             }
 
                             P.LogPage {
@@ -478,6 +565,15 @@ ApplicationWindow {
                 onClose_requested: root.close()
                 onMinimize_requested: root.showMinimized()
                 onMaximize_requested: root.toggle_maximize()
+            }
+
+            C.OperationOverlay {
+                anchors.fill: parent
+                z: 10000
+                active: root.operation_active
+                title: root.operation_title
+                detail: root.operation_detail
+                progress: root.operation_progress
             }
         }
     }

@@ -9,19 +9,16 @@ C.GlassPanel {
     property bool active: false
     property var camera_status: ({})
 
-    signal clicked()
+    signal clicked
 
     height: 58
     corner_radius: 18
 
-    tint_color: active ? Qt.rgba(0.0, 0.48, 1.0, 0.88)
-                       : Qt.rgba(1, 1, 1, 0.56)
+    tint_color: active ? Qt.rgba(0.0, 0.48, 1.0, 0.88) : Qt.rgba(1, 1, 1, 0.56)
 
-    stroke_color: active ? Qt.rgba(1, 1, 1, 0.65)
-                         : Qt.rgba(1, 1, 1, 0.72)
+    stroke_color: active ? Qt.rgba(1, 1, 1, 0.65) : Qt.rgba(1, 1, 1, 0.72)
 
-    scale: mouse_area.pressed ? 0.985 :
-           mouse_area.containsMouse ? 1.014 : 1.0
+    scale: mouse_area.pressed ? 0.985 : mouse_area.containsMouse ? 1.014 : 1.0
 
     Behavior on scale {
         NumberAnimation {
@@ -53,9 +50,9 @@ C.GlassPanel {
 
         Text {
             text: {
-                var ready = card.camera_status.color_received || card.camera_status.colorReady
-                var size = card.camera_status.color_size || card.camera_status.colorSize || "--"
-                return ready ? "RGB " + size : "等待图像"
+                var ready = card.camera_status.color_received || card.camera_status.colorReady;
+                var size = card.camera_status.color_size || card.camera_status.colorSize || "--";
+                return ready ? "RGB " + size : "等待图像";
             }
             color: card.active ? Qt.rgba(1, 1, 1, 0.82) : C.Theme.text_secondary
             font.family: C.Theme.font_stack

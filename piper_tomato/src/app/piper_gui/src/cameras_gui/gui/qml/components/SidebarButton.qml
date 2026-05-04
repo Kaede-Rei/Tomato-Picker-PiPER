@@ -8,19 +8,19 @@ Rectangle {
     property int page_index: 0
     property bool active: false
 
-    signal clicked()
+    signal clicked
 
     height: 46
     radius: 15
 
-    color: active ? C.Theme.mac_blue :
-           mouse_area.containsMouse ? Qt.rgba(1, 1, 1, 0.74) :
-                                      "transparent"
+    color: active ? C.Theme.mac_blue : mouse_area.containsMouse ? Qt.rgba(1, 1, 1, 0.74) : "transparent"
 
     scale: mouse_area.pressed ? 0.985 : 1.0
 
     Behavior on color {
-        ColorAnimation { duration: 140 }
+        ColorAnimation {
+            duration: 140
+        }
     }
 
     Behavior on scale {

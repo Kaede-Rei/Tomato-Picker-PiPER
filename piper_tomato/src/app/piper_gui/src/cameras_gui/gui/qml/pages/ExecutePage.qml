@@ -6,10 +6,10 @@ import "../components" as C
 C.PagePanel {
     id: page
 
-    signal upsert_task_requested()
-    signal execute_group_requested()
-    signal cancel_requested()
-    signal go_home_requested()
+    signal upsert_task_requested
+    signal execute_group_requested
+    signal cancel_requested
+    signal go_home_requested
 
     title: "执行控制"
     subtitle: "写入任务、执行任务组、取消或回安全区"

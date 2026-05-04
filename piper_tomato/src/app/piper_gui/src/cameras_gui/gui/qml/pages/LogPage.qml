@@ -31,7 +31,7 @@ C.PagePanel {
             }
 
             onTextChanged: {
-                cursorPosition = length
+                cursorPosition = length;
             }
         }
     }
