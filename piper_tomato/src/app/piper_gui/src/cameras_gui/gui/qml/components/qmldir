@@ -1,0 +1,15 @@
+singleton Theme 1.0 Theme.qml
+CandyBackground 1.0 CandyBackground.qml
+SoftShadow 1.0 SoftShadow.qml
+GlassPanel 1.0 GlassPanel.qml
+MacButton 1.0 MacButton.qml
+MacSecondaryButton 1.0 MacSecondaryButton.qml
+MacTextField 1.0 MacTextField.qml
+MacComboBox 1.0 MacComboBox.qml
+StatusPill 1.0 StatusPill.qml
+SidebarButton 1.0 SidebarButton.qml
+CameraButton 1.0 CameraButton.qml
+PagePanel 1.0 PagePanel.qml
+FormLabel 1.0 FormLabel.qml
+CameraPreviewPanel 1.0 CameraPreviewPanel.qml
+WindowChrome 1.0 WindowChrome.qml
