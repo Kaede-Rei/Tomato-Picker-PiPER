@@ -1,0 +1,96 @@
+project:
+  name: cameras_gui
+
+gui:
+  title: 番茄采摘 ROS GUI
+  width: 1280
+  height: 720
+  bg_color: "0x172033"
+
+ros:
+  node_name: tomato_picking_gui
+  pick_action: /pick_action
+  simple_move_action: /simple_move_arm
+  tf_wait_sec: 0.2
+
+frames:
+  base_frame: base_link
+  flange_frame: arm_link6
+  tcp_frame: arm_link_tcp
+  place_frame: base_link
+
+cameras:
+  wrist:
+    label: 腕上近景
+    role: wrist
+    enabled: true
+    color_topic: /piper/camera/wrist/color/image_raw
+    color_info_topic: /piper/camera/wrist/color/camera_info
+    depth_registered_topic: /piper/camera/wrist/depth_registered/image_raw
+    depth_registered_info_topic: /piper/camera/wrist/depth_registered/camera_info
+    lrm_topic: /piper/camera/wrist/lrm_distance
+    target_frame: arm_link_tcp
+    prefer_lrm: true
+
+  mid:
+    label: 中景外参相机
+    role: mid
+    enabled: true
+    color_topic: /piper/camera/mid/color/image_raw
+    color_info_topic: /piper/camera/mid/color/camera_info
+    depth_registered_topic: /piper/camera/mid/depth_to_color
+    depth_registered_info_topic: /piper/camera/mid/color/camera_info
+    lrm_topic: ""
+    target_frame: base_link
+    prefer_lrm: false
+
+  far:
+    label: 外景预测相机
+    role: far
+    enabled: true
+    color_topic: /piper/camera/far/color/image_raw
+    color_info_topic: /piper/camera/far/color/camera_info
+    depth_registered_topic: /piper/camera/far/depth_to_color
+    depth_registered_info_topic: /piper/camera/far/color/camera_info
+    lrm_topic: ""
+    target_frame: base_link
+    prefer_lrm: false
+
+target_selection:
+  point_method: skeleton_centroid
+  mask_close_kernel: 5
+  mask_open_kernel: 3
+  depth_kernel_size: 7
+  depth_trim_ratio: 0.15
+  center_band_min_dist_px: 1.0
+
+task:
+  group_name: gui_pick
+  task_id: 1
+  description: GUI采摘任务
+  use_eef: true
+  use_place_pose: true
+  go_home_after_finish: true
+  go_safe_after_cancel: true
+  retry_times: 0
+
+place:
+  target_type: point
+  frame_id: base_link
+  x: 0.0
+  y: 0.20
+  z: 0.20
+  roll: 0.0
+  pitch: 0.0
+  yaw: 0.0
+
+tcp_compensation:
+  enabled: false
+  dx: 0.020
+  dy: 0.020
+  dz: 0.010
+gui:
+  fallback_image:
+    width: 1280
+    height: 720
+    color: "0x172033"
