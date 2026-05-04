@@ -1,11 +1,6 @@
-from __future__ import annotations
-
-from typing import Tuple
-
-import cv2
-import numpy as np
-
 from cameras_gui.core.selection import preprocess_selection_mask
+from typing import Tuple
+import numpy as np
 
 
 def depth_to_pointcloud(
@@ -38,6 +33,48 @@ def trimmed_median(values: np.ndarray, trim_ratio: float) -> float:
     return float(np.median(values))
 
 
+def resize_mask_nearest(mask: np.ndarray, width: int, height: int) -> np.ndarray:
+    src_h, src_w = mask.shape[:2]
+
+    if src_h == height and src_w == width:
+        return mask
+
+    ys = np.linspace(0, src_h - 1, height).astype(np.int64)
+    xs = np.linspace(0, src_w - 1, width).astype(np.int64)
+
+    return mask[ys[:, None], xs[None, :]]
+
+
+def _binary_erosion(mask_bool: np.ndarray) -> np.ndarray:
+    h, w = mask_bool.shape
+    padded = np.pad(mask_bool, ((1, 1), (1, 1)), mode="constant", constant_values=False)
+
+    out = np.ones_like(mask_bool, dtype=bool)
+    for dy in range(3):
+        for dx in range(3):
+            out &= padded[dy : dy + h, dx : dx + w]
+
+    return out
+
+
+def erode_binary(mask: np.ndarray, iterations: int = 1) -> np.ndarray:
+    binary = mask > 0
+
+    for _ in range(max(1, int(iterations))):
+        binary = _binary_erosion(binary)
+
+    return binary.astype(np.uint8) * 255
+
+
+def distance_transform(mask: np.ndarray) -> np.ndarray:
+    try:
+        from scipy import ndimage as ndi
+
+        return ndi.distance_transform_edt(mask > 0).astype(np.float32)
+    except Exception:
+        return (mask > 0).astype(np.float32)
+
+
 def get_valid_depth_around(
     depth_mm: np.ndarray,
     u: int,
@@ -52,7 +89,7 @@ def get_valid_depth_around(
     h, w = depth_mm.shape[:2]
 
     if mask.shape[:2] != (h, w):
-        mask = cv2.resize(mask, (w, h), interpolation=cv2.INTER_NEAREST)
+        mask = resize_mask_nearest(mask, w, h)
 
     binary_mask = preprocess_selection_mask(mask, close_kernel, open_kernel)
 
@@ -61,19 +98,20 @@ def get_valid_depth_around(
         kernel_size += 1
 
     half = kernel_size // 2
-    start_x, end_x = max(0, u - half), min(w, u + half + 1)
-    start_y, end_y = max(0, v - half), min(h, v + half + 1)
 
-    distance_map = cv2.distanceTransform(binary_mask, cv2.DIST_L2, 5)
-    local_radius = float(distance_map[v, u]) if 0 <= v < h and 0 <= u < w else 0.0
+    start_x = max(0, int(u) - half)
+    end_x = min(w, int(u) + half + 1)
+    start_y = max(0, int(v) - half)
+    end_y = min(h, int(v) + half + 1)
+
+    dist_map = distance_transform(binary_mask)
+    local_radius = float(dist_map[v, u]) if 0 <= v < h and 0 <= u < w else 0.0
     center_threshold = max(center_band_min_dist_px, local_radius * 0.5)
 
-    center_mask = (distance_map >= center_threshold).astype(np.uint8) * 255
+    center_mask = (dist_map >= center_threshold).astype(np.uint8) * 255
+    eroded_mask = erode_binary(binary_mask, iterations=1)
 
-    erode_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    eroded_mask = cv2.erode(binary_mask, erode_kernel, iterations=1)
-
-    for candidate_mask in [center_mask, eroded_mask, binary_mask]:
+    for candidate_mask in (center_mask, eroded_mask, binary_mask):
         depth_roi = depth_mm[start_y:end_y, start_x:end_x]
         mask_roi = candidate_mask[start_y:end_y, start_x:end_x]
 
@@ -84,6 +122,7 @@ def get_valid_depth_around(
             return trimmed_median(valid_depths, trim_ratio)
 
     full_valid = depth_mm[(binary_mask > 0) & (depth_mm > 0)]
+
     if full_valid.size == 0:
         return 0.0
 

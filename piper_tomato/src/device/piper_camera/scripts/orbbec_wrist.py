@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-from __future__ import annotations
-
 import os
 import re
 from typing import Any, List, Optional

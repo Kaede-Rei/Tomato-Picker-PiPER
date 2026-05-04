@@ -6,7 +6,6 @@ from enum import Enum
 import numpy as np
 import rospy
 
-from cv_bridge import CvBridge
 from sensor_msgs.msg import Image, CameraInfo
 from std_msgs.msg import Float32
 
@@ -56,7 +55,6 @@ class CameraCache:
 
 class CamerasReader:
     def __init__(self, cameras_configs: dict[str, CameraConfig]):
-        self.bridge = CvBridge()
         self.cameras_configs = cameras_configs
         self.cameras_caches: dict[str, CameraCache] = {
             name: CameraCache(name=config.name, label=config.label)
@@ -112,9 +110,96 @@ class CamerasReader:
                     )
                 )
 
+    def _image_msg_to_numpy(self, msg):
+        encoding = (msg.encoding or "").lower()
+
+        encoding_map = {
+            "bgr8": (np.uint8, 3),
+            "rgb8": (np.uint8, 3),
+            "bgra8": (np.uint8, 4),
+            "rgba8": (np.uint8, 4),
+            "mono8": (np.uint8, 1),
+            "8uc1": (np.uint8, 1),
+            "mono16": (np.uint16, 1),
+            "16uc1": (np.uint16, 1),
+            "32fc1": (np.float32, 1),
+        }
+
+        if encoding not in encoding_map:
+            raise RuntimeError(f"Unsupported image encoding: {msg.encoding}")
+
+        dtype, channels = encoding_map[encoding]
+        dtype = np.dtype(dtype)
+
+        data = np.frombuffer(msg.data, dtype=dtype)
+
+        if msg.is_bigendian and data.dtype.byteorder != ">":
+            data = data.byteswap().newbyteorder()
+
+        height = int(msg.height)
+        width = int(msg.width)
+        step = int(msg.step)
+
+        row_items = step // dtype.itemsize
+        image = data.reshape((height, row_items))
+
+        useful_items = width * channels
+        image = image[:, :useful_items]
+
+        if channels > 1:
+            image = image.reshape((height, width, channels))
+        else:
+            image = image.reshape((height, width))
+
+        return image
+
+    def _image_msg_to_bgr8(self, msg):
+        encoding = (msg.encoding or "").lower()
+        image = self._image_msg_to_numpy(msg)
+
+        if encoding == "bgr8":
+            return np.ascontiguousarray(image)
+
+        if encoding == "rgb8":
+            return np.ascontiguousarray(image[:, :, ::-1])
+
+        if encoding == "bgra8":
+            return np.ascontiguousarray(image[:, :, :3])
+
+        if encoding == "rgba8":
+            return np.ascontiguousarray(image[:, :, [2, 1, 0]])
+
+        mono = self._mono_to_uint8(image)
+        return np.ascontiguousarray(np.repeat(mono[:, :, None], 3, axis=2))
+
+    def _mono_to_uint8(self, image):
+        if image.dtype == np.uint8:
+            return image
+
+        if np.issubdtype(image.dtype, np.floating):
+            finite = image[np.isfinite(image)]
+        else:
+            finite = image
+
+        if finite.size == 0:
+            return np.zeros(image.shape, dtype=np.uint8)
+
+        low = float(np.nanmin(finite))
+        high = float(np.nanmax(finite))
+
+        if high <= low:
+            return np.zeros(image.shape, dtype=np.uint8)
+
+        scaled = (image.astype(np.float32) - low) * (255.0 / (high - low))
+        return (
+            np.nan_to_num(scaled, nan=0.0, posinf=255.0, neginf=0.0)
+            .clip(0, 255)
+            .astype(np.uint8)
+        )
+
     def _on_color(self, name: str, msg: Image) -> None:
         try:
-            image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+            image = self._image_msg_to_bgr8(msg)
 
             with self.lock:
                 cache = self.cameras_caches[name]
@@ -149,11 +234,11 @@ class CamerasReader:
 
     def _on_depth(self, name: str, msg: Image) -> None:
         try:
-            depth = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+            depth = self._image_msg_to_numpy(msg)
 
             if msg.encoding == "32FC1":
                 depth_mm = depth.astype(np.float32) * 1000.0
-            elif msg.encoding == "16UC1":
+            elif msg.encoding in ("16UC1", "mono16"):
                 depth_mm = depth.astype(np.float32)
             else:
                 raise RuntimeError(f"Unsupported depth encoding: {msg.encoding}")

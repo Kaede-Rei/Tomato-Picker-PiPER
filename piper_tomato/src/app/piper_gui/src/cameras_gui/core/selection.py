@@ -1,16 +1,94 @@
-from __future__ import annotations
-
+from collections import deque
 from typing import Optional, Tuple
 
-import cv2
 import numpy as np
 
 
 def get_mask_center(mask: np.ndarray) -> Optional[Tuple[float, float]]:
-    M = cv2.moments(mask.astype(np.uint8))
-    if M["m00"] == 0:
+    ys, xs = np.where(mask > 0)
+    if len(xs) == 0:
         return None
-    return float(M["m10"] / M["m00"]), float(M["m01"] / M["m00"])
+    return float(xs.mean()), float(ys.mean())
+
+
+def build_polygon_mask(
+    width: int,
+    height: int,
+    polygon_points: list[dict],
+) -> np.ndarray:
+    mask = np.zeros((height, width), dtype=np.uint8)
+
+    if len(polygon_points) < 3:
+        return mask
+
+    poly = np.array(
+        [[float(p["x"]), float(p["y"])] for p in polygon_points],
+        dtype=np.float64,
+    )
+
+    xs = np.arange(width, dtype=np.float64) + 0.5
+    ys = np.arange(height, dtype=np.float64) + 0.5
+    xx, yy = np.meshgrid(xs, ys)
+
+    inside = np.zeros((height, width), dtype=bool)
+
+    xj, yj = poly[-1]
+    for xi, yi in poly:
+        cross_y = (yi > yy) != (yj > yy)
+        x_intersect = (xj - xi) * (yy - yi) / ((yj - yi) + 1e-12) + xi
+        inside ^= cross_y & (xx < x_intersect)
+        xj, yj = xi, yi
+
+    mask[inside] = 255
+    return mask
+
+
+def _binary_erosion(mask_bool: np.ndarray, structure: np.ndarray) -> np.ndarray:
+    h, w = mask_bool.shape
+    kh, kw = structure.shape
+    ph, pw = kh // 2, kw // 2
+
+    padded = np.pad(
+        mask_bool, ((ph, ph), (pw, pw)), mode="constant", constant_values=False
+    )
+    out = np.ones_like(mask_bool, dtype=bool)
+
+    ys, xs = np.where(structure)
+    for dy, dx in zip(ys, xs):
+        out &= padded[dy : dy + h, dx : dx + w]
+
+    return out
+
+
+def _binary_dilation(mask_bool: np.ndarray, structure: np.ndarray) -> np.ndarray:
+    h, w = mask_bool.shape
+    kh, kw = structure.shape
+    ph, pw = kh // 2, kw // 2
+
+    padded = np.pad(
+        mask_bool, ((ph, ph), (pw, pw)), mode="constant", constant_values=False
+    )
+    out = np.zeros_like(mask_bool, dtype=bool)
+
+    ys, xs = np.where(structure)
+    for dy, dx in zip(ys, xs):
+        out |= padded[dy : dy + h, dx : dx + w]
+
+    return out
+
+
+def _make_ellipse_kernel(size: int) -> np.ndarray:
+    size = max(1, int(size))
+    if size % 2 == 0:
+        size += 1
+
+    r = size // 2
+    yy, xx = np.ogrid[-r : r + 1, -r : r + 1]
+
+    if r <= 0:
+        return np.ones((1, 1), dtype=bool)
+
+    return (xx * xx + yy * yy) <= (r * r)
 
 
 def preprocess_selection_mask(
@@ -18,83 +96,137 @@ def preprocess_selection_mask(
     close_kernel: int = 5,
     open_kernel: int = 3,
 ) -> np.ndarray:
-    binary_mask = (mask > 0).astype(np.uint8) * 255
-    if binary_mask.size == 0:
-        return binary_mask
+    binary = mask > 0
 
-    close_kernel = max(1, int(close_kernel))
-    open_kernel = max(1, int(open_kernel))
-    if close_kernel % 2 == 0:
-        close_kernel += 1
-    if open_kernel % 2 == 0:
-        open_kernel += 1
+    if binary.size == 0:
+        return mask.astype(np.uint8)
 
-    kernel_close = cv2.getStructuringElement(
-        cv2.MORPH_ELLIPSE, (close_kernel, close_kernel)
-    )
-    kernel_open = cv2.getStructuringElement(
-        cv2.MORPH_ELLIPSE, (open_kernel, open_kernel)
-    )
+    close_k = _make_ellipse_kernel(close_kernel)
+    open_k = _make_ellipse_kernel(open_kernel)
 
-    refined = cv2.morphologyEx(binary_mask, cv2.MORPH_CLOSE, kernel_close)
-    refined = cv2.morphologyEx(refined, cv2.MORPH_OPEN, kernel_open)
-    return refined
+    binary = _binary_dilation(binary, close_k)
+    binary = _binary_erosion(binary, close_k)
+
+    binary = _binary_erosion(binary, open_k)
+    binary = _binary_dilation(binary, open_k)
+
+    return binary.astype(np.uint8) * 255
+
+
+def _connected_components(binary: np.ndarray) -> list[np.ndarray]:
+    mask = binary > 0
+    h, w = mask.shape
+    visited = np.zeros_like(mask, dtype=bool)
+    components: list[np.ndarray] = []
+
+    neighbors = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
+    ys, xs = np.where(mask)
+    for sy, sx in zip(ys, xs):
+        if visited[sy, sx]:
+            continue
+
+        q = deque()
+        q.append((int(sy), int(sx)))
+        visited[sy, sx] = True
+        pts = []
+
+        while q:
+            y, x = q.popleft()
+            pts.append((y, x))
+
+            for dy, dx in neighbors:
+                ny, nx = y + dy, x + dx
+                if 0 <= ny < h and 0 <= nx < w:
+                    if mask[ny, nx] and not visited[ny, nx]:
+                        visited[ny, nx] = True
+                        q.append((ny, nx))
+
+        components.append(np.array(pts, dtype=np.int32))
+
+    return components
+
+
+def keep_largest_component(binary_mask: np.ndarray) -> np.ndarray:
+    comps = _connected_components(binary_mask)
+    if not comps:
+        return np.zeros_like(binary_mask, dtype=np.uint8)
+
+    largest = max(comps, key=lambda c: len(c))
+    out = np.zeros_like(binary_mask, dtype=np.uint8)
+    out[largest[:, 0], largest[:, 1]] = 255
+    return out
 
 
 def build_morphological_skeleton(binary_mask: np.ndarray) -> np.ndarray:
-    work = (binary_mask > 0).astype(np.uint8) * 255
-    if work.size == 0 or cv2.countNonZero(work) == 0:
-        return np.zeros_like(work)
+    work = binary_mask > 0
+    if work.size == 0 or not np.any(work):
+        return np.zeros_like(binary_mask, dtype=np.uint8)
 
-    skel = np.zeros_like(work)
-    element = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
+    skeleton = np.zeros_like(work, dtype=bool)
 
-    while True:
-        eroded = cv2.erode(work, element)
-        opened = cv2.dilate(eroded, element)
-        temp = cv2.subtract(work, opened)
-        skel = cv2.bitwise_or(skel, temp)
-        work = eroded
-        if cv2.countNonZero(work) == 0:
-            break
-
-    return skel
-
-
-def find_cutting_point_from_convexity_defect(
-    binary_mask: np.ndarray,
-    stem_center: Tuple[float, float],
-) -> Tuple[float, float]:
-    contours, _ = cv2.findContours(
-        binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+    cross = np.array(
+        [
+            [False, True, False],
+            [True, True, True],
+            [False, True, False],
+        ],
+        dtype=bool,
     )
-    if not contours:
-        return stem_center
 
-    largest = max(contours, key=cv2.contourArea)
-    epsilon = 0.001 * cv2.arcLength(largest, True)
-    largest = cv2.approxPolyDP(largest, epsilon, True)
-    hull = cv2.convexHull(largest, returnPoints=False)
+    while np.any(work):
+        eroded = _binary_erosion(work, cross)
+        opened = _binary_dilation(eroded, cross)
+        residue = work & (~opened)
+        skeleton |= residue
+        work = eroded
 
-    try:
-        defects = cv2.convexityDefects(largest, hull)
-        if defects is None:
-            return stem_center
+    return skeleton.astype(np.uint8) * 255
 
-        candidates = []
-        for i in range(defects.shape[0]):
-            _, _, f, _ = defects[i, 0]
-            candidates.append(tuple(largest[f][0]))
 
-        if not candidates:
-            return stem_center
+def _nearest_skeleton_point(
+    skeleton: np.ndarray,
+    center: Tuple[float, float],
+) -> Optional[Tuple[float, float]]:
+    skel_y, skel_x = np.where(skeleton > 0)
 
-        return min(
-            candidates,
-            key=lambda p: (p[0] - stem_center[0]) ** 2 + (p[1] - stem_center[1]) ** 2,
-        )
-    except cv2.error:
-        return stem_center
+    if len(skel_x) == 0:
+        return None
+
+    dx = skel_x.astype(np.float64) - float(center[0])
+    dy = skel_y.astype(np.float64) - float(center[1])
+    idx = int(np.argmin(dx * dx + dy * dy))
+
+    return float(skel_x[idx]), float(skel_y[idx])
+
+
+def _principal_axis_center_point(
+    binary_mask: np.ndarray,
+    center: Tuple[float, float],
+) -> Tuple[float, float]:
+    ys, xs = np.where(binary_mask > 0)
+
+    if len(xs) == 0:
+        return center
+
+    pts = np.stack([xs.astype(np.float64), ys.astype(np.float64)], axis=1)
+    mean = pts.mean(axis=0)
+    pts0 = pts - mean
+
+    if pts0.shape[0] < 3:
+        return float(mean[0]), float(mean[1])
+
+    cov = pts0.T @ pts0 / max(1, pts0.shape[0] - 1)
+    eigvals, eigvecs = np.linalg.eigh(cov)
+
+    main_axis = eigvecs[:, int(np.argmax(eigvals))]
+    proj = pts0 @ main_axis
+
+    center_arr = np.array([center[0], center[1]], dtype=np.float64)
+    center_proj = (center_arr - mean) @ main_axis
+    idx = int(np.argmin(np.abs(proj - center_proj)))
+
+    return float(pts[idx, 0]), float(pts[idx, 1])
 
 
 def find_cutting_point(
@@ -113,44 +245,26 @@ def find_cutting_point(
 
     cropped = stem_mask[y0:y1, x0:x1]
     binary = preprocess_selection_mask(cropped, close_kernel, open_kernel)
+    binary = keep_largest_component(binary)
+
     local_center = (stem_center[0] - x0, stem_center[1] - y0)
 
     if method == "centroid":
-        return stem_center
+        return float(stem_center[0]), float(stem_center[1])
 
-    if method == "legacy_defect":
-        px, py = find_cutting_point_from_convexity_defect(binary, local_center)
+    if method == "pca_center":
+        px, py = _principal_axis_center_point(binary, local_center)
         return float(px + x0), float(py + y0)
 
     skeleton = build_morphological_skeleton(binary)
-    skel_y, skel_x = np.where(skeleton > 0)
+    pt = _nearest_skeleton_point(skeleton, local_center)
 
-    if len(skel_x) == 0:
-        px, py = find_cutting_point_from_convexity_defect(binary, local_center)
+    if pt is None:
+        px, py = _principal_axis_center_point(binary, local_center)
         return float(px + x0), float(py + y0)
 
-    dx = skel_x.astype(np.float64) - float(local_center[0])
-    dy = skel_y.astype(np.float64) - float(local_center[1])
-    idx = int(np.argmin(dx * dx + dy * dy))
-
-    return float(skel_x[idx] + x0), float(skel_y[idx] + y0)
-
-
-def build_polygon_mask(
-    width: int,
-    height: int,
-    polygon_points: list[dict],
-) -> np.ndarray:
-    mask = np.zeros((height, width), dtype=np.uint8)
-    if len(polygon_points) < 3:
-        return mask
-
-    pts = np.array(
-        [[int(round(p["x"])), int(round(p["y"]))] for p in polygon_points],
-        dtype=np.int32,
-    )
-    cv2.fillPoly(mask, [pts], 255)
-    return mask
+    px, py = pt
+    return float(px + x0), float(py + y0)
 
 
 def select_cutting_pixel_from_polygon(

@@ -1,0 +1,7 @@
+<launch>
+    <arg name="config" default="$(find piper_gui)/config/cameras_gui.yaml" />
+
+    <node pkg="piper_gui" type="cameras_gui_qml.py" name="cameras_gui" output="screen">
+        <param name="config" value="$(arg config)" />
+    </node>
+</launch>

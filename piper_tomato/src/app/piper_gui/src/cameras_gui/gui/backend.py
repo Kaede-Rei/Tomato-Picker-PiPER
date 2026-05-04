@@ -1,3 +1,5 @@
+from PySide6.QtCore import QObject, QTimer, Signal, Slot
+
 from typing import Optional
 from pathlib import Path
 
@@ -6,11 +8,10 @@ import rospy
 import json
 import yaml
 
-from PySide6.QtCore import QObject, QTimer, Signal, Slot
 from cameras_gui.core.depth import depth_to_pointcloud, get_valid_depth_around
 from cameras_gui.core.selection import select_cutting_pixel_from_polygon
 from cameras_gui.gui.image_provider import CamerasImageProvider
-from cameras_gui.ros.cameras_reader import CameraConfig, CamerasReader
+from cameras_gui.ros.cameras_reader import CameraConfig, CameraRole, CamerasReader
 from cameras_gui.ros.pick_action_client import PickActionClient
 from cameras_gui.ros.tf_tools import TfTools
 
@@ -25,7 +26,7 @@ def _loads(raw: str) -> dict:
     return json.loads(raw) if raw else {}
 
 
-class PiperGuiBackend(QObject):
+class CamerasGuiBackend(QObject):
     log_changed = Signal(str)
     state_changed = Signal(str)
     image_changed = Signal(str)
@@ -56,10 +57,21 @@ class PiperGuiBackend(QObject):
         with open(path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
 
+    def _parse_camera_role(self, value) -> CameraRole:
+        if isinstance(value, CameraRole):
+            return value
+
+        role_text = str(value or "wrist").strip().lower()
+        for role in CameraRole:
+            if role.value == role_text:
+                return role
+
+        return CameraRole.WRIST
+
     @Slot(result=str)
     def state_init(self) -> str:
         cameras = self.config.get("cameras", {})
-        camera_names = [name for name, c in cameras.item() if c.get("enabled", True)]
+        camera_names = [name for name, c in cameras.items() if c.get("enabled", True)]
         if camera_names:
             self.preview_camera = camera_names[0]
 
@@ -99,6 +111,8 @@ class PiperGuiBackend(QObject):
                 camera_configs[name] = CameraConfig(
                     name=name,
                     label=c.get("label", name),
+                    role=self._parse_camera_role(c.get("role", name)),
+                    enabled=bool(c.get("enabled", True)),
                     color_topic=c.get("color_topic", ""),
                     color_info_topic=c.get("color_info_topic", ""),
                     depth_registered_topic=c.get("depth_registered_topic", ""),
@@ -106,7 +120,7 @@ class PiperGuiBackend(QObject):
                         "depth_registered_info_topic", ""
                     ),
                     lrm_topic=c.get("lrm_topic", ""),
-                    default_output_frame=c.get("default_output_frame", "base_link"),
+                    target_frame=c.get("target_frame", "base_link"),
                     prefer_lrm=bool(c.get("prefer_lrm", False)),
                 )
 
@@ -128,16 +142,16 @@ class PiperGuiBackend(QObject):
                 done_cb=self._on_pick_done,
             )
 
-            self.logChanged.emit("ROS 已连接，相机订阅已启动")
-            self.taskStatusChanged.emit("ROS 已连接")
+            self.log_changed.emit("ROS 已连接，相机订阅已启动")
+            self.task_status_changed.emit("ROS 已连接")
         except Exception as e:
-            self.logChanged.emit(f"ROS 连接失败：{e}")
-            self.taskStatusChanged.emit(f"ROS 连接失败：{e}")
+            self.log_changed.emit(f"ROS 连接失败：{e}")
+            self.task_status_changed.emit(f"ROS 连接失败：{e}")
 
     @Slot(str)
     def set_preview_camera(self, camera_name: str) -> None:
         self.preview_camera = camera_name
-        self.previewStatusChanged.emit(f"当前相机：{camera_name}")
+        self.preview_status_changed.emit(f"当前相机：{camera_name}")
 
     def _tick(self) -> None:
         if self.reader is None:
@@ -148,13 +162,13 @@ class PiperGuiBackend(QObject):
             if snap.color_bgr is not None:
                 self.image_provider.set_bgr(self.preview_camera, snap.color_bgr)
                 self.image_revision += 1
-                self.imageChanged.emit(
+                self.image_changed.emit(
                     f"image://piper_camera/{self.preview_camera}?rev={self.image_revision}"
                 )
 
-            self.cameraStatusChanged.emit(_dumps(self.reader.status_dict()))
+            self.camera_status_changed.emit(_dumps(self.reader.status_dict()))
         except Exception as e:
-            self.logChanged.emit(f"刷新相机画面失败：{e}")
+            self.log_changed.emit(f"刷新相机画面失败：{e}")
 
     @Slot(str, result=str)
     def commit_polygon_selection(self, raw_payload: str) -> str:
@@ -222,7 +236,7 @@ class PiperGuiBackend(QObject):
             ),
         )
 
-        camera_config = self.reader.camera_configs[camera_name]
+        camera_config = self.reader.cameras_configs[camera_name]
         use_lrm = False
         if camera_config.prefer_lrm and 1 <= snap.lrm_mm <= 400:
             depth_mm = float(snap.lrm_mm)
@@ -234,7 +248,7 @@ class PiperGuiBackend(QObject):
         depth_m = depth_mm / 1000.0
         cam_xyz = depth_to_pointcloud(u, v, depth_m, snap.depth_intrinsics)
 
-        output_frame = payload.get("outputFrame") or camera_config.default_output_frame
+        output_frame = payload.get("outputFrame") or camera_config.target_frame
         target_xyz = self.tf_tools.transform_point(
             snap.depth_frame_id,
             output_frame,
@@ -263,7 +277,7 @@ class PiperGuiBackend(QObject):
         }
 
         self.last_target = result
-        self.targetChanged.emit(_dumps(result))
+        self.target_changed.emit(_dumps(result))
         return _dumps(result)
 
     @Slot(str, result=str)
@@ -299,7 +313,7 @@ class PiperGuiBackend(QObject):
                 group_config=group_config,
             )
             msg = "任务已写入 / 更新"
-            self.taskStatusChanged.emit(msg)
+            self.task_status_changed.emit(msg)
             return _dumps({"ok": True, "message": msg})
         except Exception as e:
             return _dumps({"ok": False, "message": str(e)})
@@ -326,7 +340,7 @@ class PiperGuiBackend(QObject):
                 group_config=group_config,
             )
             msg = "任务组执行请求已发送"
-            self.taskStatusChanged.emit(msg)
+            self.task_status_changed.emit(msg)
             return _dumps({"ok": True, "message": msg})
         except Exception as e:
             return _dumps({"ok": False, "message": str(e)})
@@ -335,22 +349,22 @@ class PiperGuiBackend(QObject):
     def cancel_task(self) -> None:
         if self.pick_client:
             self.pick_client.cancel()
-            self.taskStatusChanged.emit("已请求取消当前任务")
+            self.task_status_changed.emit("已请求取消当前任务")
 
     @Slot()
     def go_home(self) -> None:
         if not self.pick_client:
-            self.taskStatusChanged.emit("未连接 /simple_move_arm")
+            self.task_status_changed.emit("未连接 /simple_move_arm")
             return
         try:
             self.pick_client.go_home(done_cb=self._on_go_home_done)
-            self.taskStatusChanged.emit("正在返回安全区")
+            self.task_status_changed.emit("正在返回安全区")
         except Exception as e:
-            self.taskStatusChanged.emit(f"返回安全区失败：{e}")
+            self.task_status_changed.emit(f"返回安全区失败：{e}")
 
     def _on_pick_feedback(self, feedback) -> None:
         try:
-            self.taskStatusChanged.emit(
+            self.task_status_changed.emit(
                 f"{feedback.stage_text} | 步骤 {feedback.current_step_index}/{feedback.total_steps}"
             )
         except Exception:
@@ -361,21 +375,21 @@ class PiperGuiBackend(QObject):
             msg = getattr(result, "message", "")
             success = bool(getattr(result, "success", False))
             if success:
-                self.taskStatusChanged.emit(f"任务完成：{msg}")
+                self.task_status_changed.emit(f"任务完成：{msg}")
             elif bool(getattr(result, "canceled", False)):
-                self.taskStatusChanged.emit(f"任务已取消：{msg}")
+                self.task_status_changed.emit(f"任务已取消：{msg}")
             else:
-                self.taskStatusChanged.emit(f"任务失败：{msg}")
+                self.task_status_changed.emit(f"任务失败：{msg}")
         except Exception:
-            self.taskStatusChanged.emit(f"任务结束，状态={state}")
+            self.task_status_changed.emit(f"任务结束，状态={state}")
 
     def _on_go_home_done(self, state, result) -> None:
         try:
             if bool(getattr(result, "success", False)):
-                self.taskStatusChanged.emit("返回安全区成功")
+                self.task_status_changed.emit("返回安全区成功")
             else:
-                self.taskStatusChanged.emit(
+                self.task_status_changed.emit(
                     f"返回安全区失败：{getattr(result, 'message', '')}"
                 )
         except Exception:
-            self.taskStatusChanged.emit(f"返回安全区结束，状态={state}")
+            self.task_status_changed.emit(f"返回安全区结束，状态={state}")

@@ -1,10 +1,10 @@
+from PySide6.QtGui import QImage
+from PySide6.QtQuick import QQuickImageProvider
+from threading import RLock
+
 import os
 import yaml
 import numpy as np
-
-from threading import RLock
-from PySide6.QtGui import QImage
-from PySide6.QtQuick import QQuickImageProvider
 
 
 def load_gui_config():
@@ -52,9 +52,9 @@ class CamerasImageProvider(QQuickImageProvider):
             rgb = np.ascontiguousarray(frame[:, :, ::-1])
             h, w = rgb.shape[:2]
             image = QImage(rgb.data, w, h, rgb.strides[0], QImage.Format.Format_RGB888)
-            self._images[camera_name] = image
+            self._images[camera_name] = image.copy()
 
-    def request_image(self, image_id, size, requested_size) -> QImage:
+    def requestImage(self, image_id, size, requested_size):  # override
         camera_name = str(image_id).split("?")[0].strip("/") or "wrist"
 
         with self._lock:
@@ -62,7 +62,9 @@ class CamerasImageProvider(QQuickImageProvider):
 
         if image.isNull():
             fallback = QImage(
-                self._fallback_width, self._fallback_height, QImage.Format.Format_RGB888
+                self._fallback_width,
+                self._fallback_height,
+                QImage.Format.Format_RGB888,
             )
             fallback.fill(self._fallback_bg_color)
             return fallback
