@@ -18,19 +18,50 @@ C.GlassPanel {
     property var roi_points: []
     property bool roi_closed: false
 
-    readonly property bool preview_ready: {
+    property bool image_frame_latched: false
+
+    readonly property bool stream_ready: {
         var st = panel.camera_statuses[panel.preview_camera] || {};
-        var stream_ready = st.color_received || st.colorReady || false;
-        return stream_ready && preview_image.status === Image.Ready && preview_image.paintedWidth > 4 && preview_image.paintedHeight > 4;
+        return st.color_received || st.colorReady || false;
     }
+
+    readonly property bool source_has_real_frame: panel.preview_source.indexOf("rev=0") < 0
+    readonly property bool image_geometry_ready: preview_image.paintedWidth > 4 && preview_image.paintedHeight > 4
+    readonly property bool preview_ready: panel.stream_ready && panel.image_frame_latched && panel.image_geometry_ready
 
     signal preview_camera_requested(string camera_name)
     signal roi_commit_requested(var payload)
     signal roi_cleared
 
-    onPreview_readyChanged: {
-        if (!panel.preview_ready) {
-            panel.clear_roi();
+    onPreview_cameraChanged: {
+        panel.image_frame_latched = false;
+    }
+
+    onPreview_sourceChanged: {
+        if (panel.stream_ready && panel.source_has_real_frame && preview_image.status === Image.Ready && panel.image_geometry_ready) {
+            panel.image_frame_latched = true;
+            roi_canvas.requestPaint();
+        }
+    }
+
+    onStream_readyChanged: {
+        if (panel.stream_ready) {
+            stream_lost_clear_timer.stop();
+        } else {
+            stream_lost_clear_timer.restart();
+        }
+    }
+
+    Timer {
+        id: stream_lost_clear_timer
+        interval: 600
+        repeat: false
+
+        onTriggered: {
+            if (!panel.stream_ready) {
+                panel.image_frame_latched = false;
+                panel.clear_roi();
+            }
         }
     }
 
@@ -192,13 +223,28 @@ C.GlassPanel {
                 source: panel.preview_source
                 fillMode: Image.PreserveAspectFit
                 cache: false
-                asynchronous: true
+                asynchronous: false
 
-                opacity: panel.preview_ready ? 1.0 : 0.10
+                opacity: panel.image_frame_latched ? 1.0 : 0.10
 
                 onStatusChanged: {
-                    if (status !== Image.Ready) {
-                        panel.clear_roi();
+                    if (status === Image.Ready && panel.stream_ready && panel.source_has_real_frame && panel.image_geometry_ready) {
+                        panel.image_frame_latched = true;
+                        roi_canvas.requestPaint();
+                    }
+                }
+
+                onPaintedWidthChanged: {
+                    if (status === Image.Ready && panel.stream_ready && panel.source_has_real_frame && panel.image_geometry_ready) {
+                        panel.image_frame_latched = true;
+                        roi_canvas.requestPaint();
+                    }
+                }
+
+                onPaintedHeightChanged: {
+                    if (status === Image.Ready && panel.stream_ready && panel.source_has_real_frame && panel.image_geometry_ready) {
+                        panel.image_frame_latched = true;
+                        roi_canvas.requestPaint();
                     }
                 }
 

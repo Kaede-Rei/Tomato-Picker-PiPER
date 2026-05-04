@@ -38,7 +38,7 @@ ApplicationWindow {
     property bool is_maximized: false
     property var nav_items: ["相机", "框选", "任务", "执行", "日志"]
 
-    readonly property bool maximized_view: root.visibility === Window.Maximized || root.is_maximized
+    readonly property bool maximized_view: root.visibility === Window.Maximized
     readonly property real outer_margin: maximized_view ? 0 : 12
     readonly property real frame_radius: maximized_view ? 0 : 18
     readonly property real shell_radius: maximized_view ? 0 : 14
@@ -53,7 +53,12 @@ ApplicationWindow {
     property real min_bottom_panel_height: 180
     property real max_bottom_panel_height: Math.max(470, root.height * 0.56)
 
+    onVisibilityChanged: {
+        root.is_maximized = root.visibility === Window.Maximized;
+    }
+
     Component.onCompleted: {
+        root.is_maximized = root.visibility === Window.Maximized;
         root.load_state(JSON.parse(backend.state_init()));
         root.append_log("PiPER QML GUI 已启动");
     }
@@ -89,7 +94,7 @@ ApplicationWindow {
     }
 
     function toggle_maximize() {
-        if (root.is_maximized) {
+        if (root.visibility === Window.Maximized) {
             root.showNormal();
             root.is_maximized = false;
         } else {
@@ -347,6 +352,51 @@ ApplicationWindow {
                         }
                     }
 
+
+                    Item {
+                        id: preview_left_handle
+                        anchors.left: preview_panel.left
+                        anchors.leftMargin: -8
+                        anchors.top: preview_panel.top
+                        anchors.bottom: preview_panel.bottom
+                        width: 18
+                        z: 31
+
+                        Rectangle {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 8
+                            height: Math.min(118, Math.max(72, parent.height * 0.24))
+                            radius: 4
+                            color: v_handle_mouse.containsMouse || v_handle_mouse.pressed ? Qt.rgba(0.44, 0.58, 0.94, 0.95) : Qt.rgba(0.61, 0.65, 0.74, 0.38)
+                        }
+
+                        MouseArea {
+                            id: v_handle_mouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.SizeHorCursor
+
+                            property real press_x_global: 0
+                            property real start_width: 0
+
+                            onPressed: function (mouse) {
+                                var p = mapToItem(content_area, mouse.x, mouse.y);
+                                press_x_global = p.x;
+                                start_width = root.sidebar_width;
+                            }
+
+                            onPositionChanged: function (mouse) {
+                                if (!pressed)
+                                    return;
+                                var p = mapToItem(content_area, mouse.x, mouse.y);
+                                var delta = p.x - press_x_global;
+                                var next_w = start_width + delta;
+                                next_w = Math.max(root.min_sidebar_width, Math.min(root.max_sidebar_width, next_w));
+                                root.sidebar_width = next_w;
+                            }
+                        }
+                    }
                     C.GlassPanel {
                         id: page_panel
                         anchors.left: parent.left
@@ -412,50 +462,6 @@ ApplicationWindow {
                                 visible: root.current_page === 4
                                 logs: root.logs
                             }
-                        }
-                    }
-                }
-
-                Item {
-                    id: preview_left_handle
-                    anchors.left: right_area.left
-                    anchors.leftMargin: -8
-                    anchors.verticalCenter: preview_panel.verticalCenter
-                    width: 18
-                    height: 520
-                    z: 30
-
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: 8
-                        height: 104
-                        radius: 4
-                        color: v_handle_mouse.containsMouse || v_handle_mouse.pressed ? Qt.rgba(0.44, 0.58, 0.94, 0.95) : Qt.rgba(0.61, 0.65, 0.74, 0.38)
-                    }
-
-                    MouseArea {
-                        id: v_handle_mouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.SizeHorCursor
-
-                        property real press_x_global: 0
-                        property real start_width: 0
-
-                        onPressed: function (mouse) {
-                            var p = mapToItem(content_area, mouse.x, mouse.y);
-                            press_x_global = p.x;
-                            start_width = root.sidebar_width;
-                        }
-
-                        onPositionChanged: function (mouse) {
-                            if (!pressed)
-                                return;
-                            var p = mapToItem(content_area, mouse.x, mouse.y);
-                            var delta = p.x - press_x_global;
-                            var next_w = start_width + delta;
-                            next_w = Math.max(root.min_sidebar_width, Math.min(root.max_sidebar_width, next_w));
-                            root.sidebar_width = next_w;
                         }
                     }
                 }

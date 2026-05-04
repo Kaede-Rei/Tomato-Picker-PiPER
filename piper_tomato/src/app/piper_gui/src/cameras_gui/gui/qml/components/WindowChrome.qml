@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 import "." as C
 
 Item {
@@ -19,9 +20,15 @@ Item {
         acceptedButtons: Qt.LeftButton
 
         onPressed: function(mouse) {
-            if (chrome.target_window) {
-                chrome.target_window.startSystemMove()
+            if (!chrome.target_window)
+                return
+
+            if (chrome.target_window.visibility === Window.Maximized || chrome.target_window.is_maximized) {
+                chrome.target_window.showNormal()
+                chrome.target_window.is_maximized = false
             }
+
+            chrome.target_window.startSystemMove()
         }
 
         onDoubleClicked: {
