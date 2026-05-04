@@ -163,7 +163,7 @@ class CamerasGuiBackend(QObject):
                 self.image_provider.set_bgr(self.preview_camera, snap.color_bgr)
                 self.image_revision += 1
                 self.image_changed.emit(
-                    f"image://piper_camera/{self.preview_camera}?rev={self.image_revision}"
+                    f"image://cameras/{self.preview_camera}?rev={self.image_revision}"
                 )
 
             self.camera_status_changed.emit(_dumps(self.reader.status_dict()))
