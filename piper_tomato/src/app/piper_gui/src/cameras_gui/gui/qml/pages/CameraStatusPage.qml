@@ -15,8 +15,7 @@ C.PagePanel {
     subtitle: "检查 RGB、Depth、Frame 与数据延迟"
 
     ScrollView {
-        Layout.fillWidth: true
-        Layout.fillHeight: true
+        anchors.fill: parent
         clip: true
 
         ColumnLayout {
@@ -28,7 +27,6 @@ C.PagePanel {
 
                 delegate: C.GlassPanel {
                     id: camera_card
-
                     required property string modelData
 
                     Layout.fillWidth: true
@@ -55,6 +53,7 @@ C.PagePanel {
                             color: C.Theme.text_secondary
                             font.family: C.Theme.font_stack
                             font.pixelSize: 13
+                            elide: Text.ElideRight
 
                             text: {
                                 var st = page.camera_statuses[camera_card.modelData] || {}

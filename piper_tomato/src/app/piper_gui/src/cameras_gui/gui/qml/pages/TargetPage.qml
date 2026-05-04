@@ -15,8 +15,7 @@ C.PagePanel {
     subtitle: "左键添加多边形顶点，双击闭合并计算目标点"
 
     ScrollView {
-        Layout.fillWidth: true
-        Layout.fillHeight: true
+        anchors.fill: parent
         clip: true
 
         ColumnLayout {

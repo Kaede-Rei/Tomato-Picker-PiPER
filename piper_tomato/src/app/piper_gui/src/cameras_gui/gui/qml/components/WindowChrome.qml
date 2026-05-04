@@ -6,17 +6,14 @@ Item {
 
     property var target_window
     property string title: ""
-    property bool show_frame: true
 
     signal close_requested()
     signal minimize_requested()
     signal maximize_requested()
 
-    height: 42
+    height: 52
     z: 9999
 
-    // FramelessWindowHint 下没有系统标题栏，拖动必须自己做。
-    // 只把顶部条作为拖动区，避免影响图像 ROI 框选。
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton
@@ -33,40 +30,39 @@ Item {
     }
 
     Rectangle {
-        id: traffic_frame
-        visible: chrome.show_frame
+        id: traffic_capsule
         anchors.left: parent.left
-        anchors.leftMargin: 14
+        anchors.leftMargin: 18
         anchors.top: parent.top
-        anchors.topMargin: 8
-        width: 82
-        height: 24
-        radius: 12
-        color: Qt.rgba(1, 1, 1, 0.42)
-        border.color: Qt.rgba(0, 0, 0, 0.08)
+        anchors.topMargin: 10
+        width: 86
+        height: 26
+        radius: 13
+        color: Qt.rgba(1, 1, 1, 0.54)
+        border.color: Qt.rgba(0.76, 0.72, 0.82, 0.95)
         border.width: 1
 
         Rectangle {
             anchors.fill: parent
             anchors.margins: 1
-            radius: 11
-            color: Qt.rgba(1, 1, 1, 0.16)
+            radius: 12
+            color: Qt.rgba(1, 1, 1, 0.12)
         }
     }
 
     Row {
         anchors.left: parent.left
-        anchors.leftMargin: 26
+        anchors.leftMargin: 28
         anchors.top: parent.top
-        anchors.topMargin: 14
-        spacing: 8
+        anchors.topMargin: 17
+        spacing: 10
 
         Rectangle {
-            width: 13
-            height: 13
-            radius: 7
-            color: close_area.containsMouse ? "#FF453A" : Qt.rgba(1, 0.27, 0.23, 0.72)
-            border.color: Qt.rgba(0, 0, 0, 0.12)
+            width: 12
+            height: 12
+            radius: 6
+            color: close_area.containsMouse ? "#FF453A" : "#FF5F57"
+            border.color: Qt.rgba(0, 0, 0, 0.16)
             border.width: 1
 
             MouseArea {
@@ -78,11 +74,11 @@ Item {
         }
 
         Rectangle {
-            width: 13
-            height: 13
-            radius: 7
-            color: min_area.containsMouse ? "#FFD60A" : Qt.rgba(1, 0.84, 0.04, 0.72)
-            border.color: Qt.rgba(0, 0, 0, 0.12)
+            width: 12
+            height: 12
+            radius: 6
+            color: min_area.containsMouse ? "#FFBD2E" : "#FEBB2E"
+            border.color: Qt.rgba(0, 0, 0, 0.16)
             border.width: 1
 
             MouseArea {
@@ -94,11 +90,11 @@ Item {
         }
 
         Rectangle {
-            width: 13
-            height: 13
-            radius: 7
-            color: max_area.containsMouse ? "#32D74B" : Qt.rgba(0.19, 0.84, 0.29, 0.72)
-            border.color: Qt.rgba(0, 0, 0, 0.12)
+            width: 12
+            height: 12
+            radius: 6
+            color: "#28C840"
+            border.color: Qt.rgba(0, 0, 0, 0.16)
             border.width: 1
 
             MouseArea {
@@ -111,7 +107,9 @@ Item {
     }
 
     Text {
-        anchors.centerIn: parent
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+        anchors.topMargin: 17
         text: chrome.title
         visible: chrome.title.length > 0
         color: C.Theme.text_secondary

@@ -13,13 +13,19 @@ C.GlassPanel {
 
     height: 58
     corner_radius: 18
-    tint_color: active ? Qt.rgba(0.0, 0.48, 1.0, 0.88) : Qt.rgba(1, 1, 1, 0.55)
-    stroke_color: active ? Qt.rgba(1, 1, 1, 0.65) : Qt.rgba(1, 1, 1, 0.72)
-    scale: mouse_area.pressed ? 0.985 : mouse_area.containsMouse ? 1.018 : 1.0
+
+    tint_color: active ? Qt.rgba(0.0, 0.48, 1.0, 0.88)
+                       : Qt.rgba(1, 1, 1, 0.56)
+
+    stroke_color: active ? Qt.rgba(1, 1, 1, 0.65)
+                         : Qt.rgba(1, 1, 1, 0.72)
+
+    scale: mouse_area.pressed ? 0.985 :
+           mouse_area.containsMouse ? 1.014 : 1.0
 
     Behavior on scale {
         NumberAnimation {
-            duration: 140
+            duration: 130
             easing.type: Easing.OutCubic
         }
     }
@@ -28,6 +34,7 @@ C.GlassPanel {
         id: mouse_area
         anchors.fill: parent
         hoverEnabled: true
+
         onClicked: card.clicked()
     }
 

@@ -10,6 +10,7 @@ Rectangle {
     height: 26
     radius: 13
     width: text_item.implicitWidth + 24
+
     color: Qt.rgba(accent.r, accent.g, accent.b, 0.14)
     border.color: Qt.rgba(accent.r, accent.g, accent.b, 0.35)
     border.width: 1

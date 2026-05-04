@@ -18,9 +18,21 @@ C.GlassPanel {
     property var roi_points: []
     property bool roi_closed: false
 
+    readonly property bool preview_ready: {
+        var st = panel.camera_statuses[panel.preview_camera] || {};
+        var stream_ready = st.color_received || st.colorReady || false;
+        return stream_ready && preview_image.status === Image.Ready && preview_image.paintedWidth > 4 && preview_image.paintedHeight > 4;
+    }
+
     signal preview_camera_requested(string camera_name)
     signal roi_commit_requested(var payload)
     signal roi_cleared
+
+    onPreview_readyChanged: {
+        if (!panel.preview_ready) {
+            panel.clear_roi();
+        }
+    }
 
     function clear_roi() {
         roi_points = [];
@@ -59,6 +71,12 @@ C.GlassPanel {
     }
 
     function view_to_image(mx, my) {
+        if (!panel.preview_ready)
+            return {
+                x: 0,
+                y: 0
+            };
+
         var r = image_rect();
         var s = color_size_for_camera(preview_camera);
 
@@ -75,6 +93,12 @@ C.GlassPanel {
     }
 
     function image_to_view(p) {
+        if (!panel.preview_ready)
+            return {
+                x: 0,
+                y: 0
+            };
+
         var r = image_rect();
         var s = color_size_for_camera(preview_camera);
 
@@ -85,7 +109,7 @@ C.GlassPanel {
     }
 
     function commit_roi() {
-        if (roi_points.length < 3)
+        if (!panel.preview_ready || roi_points.length < 3)
             return;
         var cam_cfg = cameras[preview_camera] || {};
         var output_frame = cam_cfg.default_output_frame || cam_cfg.target_frame || "base_link";
@@ -103,21 +127,21 @@ C.GlassPanel {
     }
 
     corner_radius: 28
-    tint_color: Qt.rgba(1, 1, 1, 0.52)
+    tint_color: Qt.rgba(1, 1, 1, 0.57)
 
     C.SoftShadow {
         corner_radius: panel.radius
-        strength: 1.0
+        strength: 0.50
     }
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 14
-        spacing: 12
+        anchors.margins: 16
+        spacing: 14
 
         RowLayout {
             Layout.fillWidth: true
-            spacing: 10
+            spacing: 12
 
             Repeater {
                 model: panel.camera_names
@@ -155,9 +179,11 @@ C.GlassPanel {
             id: image_stage
             Layout.fillWidth: true
             Layout.fillHeight: true
-            radius: 22
-            color: C.Theme.dark_stage
+            radius: 24
+            color: "#050D1D"
             clip: true
+            border.color: Qt.rgba(1, 1, 1, 0.08)
+            border.width: 1
 
             Image {
                 id: preview_image
@@ -168,11 +194,17 @@ C.GlassPanel {
                 cache: false
                 asynchronous: true
 
-                opacity: status === Image.Ready ? 1.0 : 0.38
+                opacity: panel.preview_ready ? 1.0 : 0.10
+
+                onStatusChanged: {
+                    if (status !== Image.Ready) {
+                        panel.clear_roi();
+                    }
+                }
 
                 Behavior on opacity {
                     NumberAnimation {
-                        duration: 180
+                        duration: 160
                     }
                 }
             }
@@ -185,7 +217,7 @@ C.GlassPanel {
                     var ctx = getContext("2d");
                     ctx.reset();
 
-                    if (panel.roi_points.length === 0)
+                    if (!panel.preview_ready || panel.roi_points.length === 0)
                         return;
                     ctx.lineWidth = 3;
                     ctx.strokeStyle = "#32D74B";
@@ -220,6 +252,7 @@ C.GlassPanel {
 
             MouseArea {
                 anchors.fill: parent
+                enabled: panel.preview_ready
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
 
                 onClicked: function (mouse) {
@@ -234,13 +267,12 @@ C.GlassPanel {
 
                     var p = panel.view_to_image(mouse.x, mouse.y);
                     panel.roi_points.push(p);
-
                     panel.roi_points = panel.roi_points;
                     roi_canvas.requestPaint();
                 }
 
                 onDoubleClicked: function (mouse) {
-                    if (panel.roi_points.length >= 3) {
+                    if (panel.preview_ready && panel.roi_points.length >= 3) {
                         panel.roi_closed = true;
                         roi_canvas.requestPaint();
                         panel.commit_roi();
@@ -251,11 +283,11 @@ C.GlassPanel {
             Rectangle {
                 anchors.left: parent.left
                 anchors.top: parent.top
-                anchors.margins: 12
-                radius: 10
-                color: "#AA000000"
-                height: 34
-                width: status_text.implicitWidth + 24
+                anchors.margins: 14
+                radius: 11
+                color: "#B5000000"
+                height: 38
+                width: status_text.implicitWidth + 26
 
                 Text {
                     id: status_text
@@ -263,7 +295,27 @@ C.GlassPanel {
                     text: panel.preview_camera + " | 左键框选，双击闭合，右键清空"
                     color: "white"
                     font.family: C.Theme.font_stack
-                    font.pixelSize: 13
+                    font.pixelSize: 14
+                }
+            }
+
+            Rectangle {
+                anchors.centerIn: parent
+                width: 180
+                height: 56
+                radius: 16
+                color: Qt.rgba(0, 0, 0, 0.48)
+                border.color: Qt.rgba(1, 1, 1, 0.10)
+                border.width: 1
+                visible: !panel.preview_ready
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "等待图像流"
+                    color: "white"
+                    font.family: C.Theme.font_stack
+                    font.pixelSize: 22
+                    font.bold: true
                 }
             }
         }

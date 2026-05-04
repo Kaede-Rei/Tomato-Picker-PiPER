@@ -5,7 +5,7 @@ Rectangle {
     id: panel
 
     property color tint_color: C.Theme.glass_light
-    property color stroke_color: C.Theme.glass_stroke
+    property color stroke_color: Qt.rgba(1, 1, 1, 0.68)
     property real corner_radius: 24
 
     radius: corner_radius
@@ -15,15 +15,11 @@ Rectangle {
     clip: false
 
     Behavior on color {
-        ColorAnimation {
-            duration: 180
-        }
+        ColorAnimation { duration: 160 }
     }
 
     Behavior on border.color {
-        ColorAnimation {
-            duration: 180
-        }
+        ColorAnimation { duration: 160 }
     }
 
     Rectangle {
@@ -32,7 +28,7 @@ Rectangle {
         anchors.top: parent.top
         height: 1
         radius: panel.radius
-        color: Qt.rgba(1, 1, 1, 0.85)
+        color: Qt.rgba(1, 1, 1, 0.78)
     }
 
     Rectangle {
@@ -41,6 +37,6 @@ Rectangle {
         anchors.bottom: parent.bottom
         height: 1
         radius: panel.radius
-        color: Qt.rgba(0, 0, 0, 0.06)
+        color: Qt.rgba(0, 0, 0, 0.045)
     }
 }

@@ -7,11 +7,11 @@ Button {
 
     height: 42
     implicitWidth: 132
-    scale: down ? 0.975 : hovered ? 1.01 : 1.0
+    scale: down ? 0.975 : hovered ? 1.008 : 1.0
 
     Behavior on scale {
         NumberAnimation {
-            duration: 130
+            duration: 120
             easing.type: Easing.OutCubic
         }
     }
@@ -27,7 +27,10 @@ Button {
 
     background: Rectangle {
         radius: 13
-        color: btn.down ? "#DADAE0" : btn.hovered ? "#F2F2F7" : Qt.rgba(1, 1, 1, 0.58)
+        color: btn.down ? "#DADAE0" :
+               btn.hovered ? "#F6F6FA" :
+                             Qt.rgba(1, 1, 1, 0.62)
+
         border.color: Qt.rgba(0, 0, 0, 0.10)
         border.width: 1
     }

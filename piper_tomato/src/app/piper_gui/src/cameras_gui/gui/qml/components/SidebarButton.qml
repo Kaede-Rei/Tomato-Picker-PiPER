@@ -10,17 +10,17 @@ Rectangle {
 
     signal clicked()
 
-    height: 44
-    radius: 14
+    height: 46
+    radius: 15
 
     color: active ? C.Theme.mac_blue :
-           mouse_area.containsMouse ? Qt.rgba(1, 1, 1, 0.62) :
+           mouse_area.containsMouse ? Qt.rgba(1, 1, 1, 0.74) :
                                       "transparent"
 
-    scale: mouse_area.pressed ? 0.98 : 1.0
+    scale: mouse_area.pressed ? 0.985 : 1.0
 
     Behavior on color {
-        ColorAnimation { duration: 150 }
+        ColorAnimation { duration: 140 }
     }
 
     Behavior on scale {
@@ -41,23 +41,23 @@ Rectangle {
     Text {
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
-        anchors.leftMargin: 16
+        anchors.leftMargin: 18
         text: item.label
         color: item.active ? "white" : C.Theme.text_primary
         font.family: C.Theme.font_stack
-        font.pixelSize: 14
+        font.pixelSize: 15
         font.bold: item.active
     }
 
     Rectangle {
         visible: item.active
         anchors.right: parent.right
-        anchors.rightMargin: 8
+        anchors.rightMargin: 10
         anchors.verticalCenter: parent.verticalCenter
         width: 5
         height: 22
         radius: 3
         color: "white"
-        opacity: 0.85
+        opacity: 0.90
     }
 }

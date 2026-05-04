@@ -11,11 +11,11 @@ Button {
 
     height: 42
     implicitWidth: 132
-    scale: down ? 0.975 : hovered ? 1.015 : 1.0
+    scale: down ? 0.975 : hovered ? 1.012 : 1.0
 
     Behavior on scale {
         NumberAnimation {
-            duration: 130
+            duration: 120
             easing.type: Easing.OutCubic
         }
     }
@@ -32,8 +32,11 @@ Button {
 
     background: Rectangle {
         radius: 13
-        color: btn.down ? btn.pressed_color : btn.hovered ? btn.hover_color : btn.normal_color
-        border.color: Qt.rgba(1, 1, 1, 0.28)
+        color: btn.down ? btn.pressed_color :
+               btn.hovered ? btn.hover_color :
+                             btn.normal_color
+
+        border.color: Qt.rgba(1, 1, 1, 0.26)
         border.width: 1
 
         Rectangle {
@@ -42,7 +45,7 @@ Button {
             anchors.top: parent.top
             height: parent.height * 0.45
             radius: parent.radius
-            color: Qt.rgba(1, 1, 1, 0.18)
+            color: Qt.rgba(1, 1, 1, 0.16)
         }
     }
 }

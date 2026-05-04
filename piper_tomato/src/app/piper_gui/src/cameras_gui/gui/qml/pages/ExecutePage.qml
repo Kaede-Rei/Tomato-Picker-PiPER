@@ -15,8 +15,7 @@ C.PagePanel {
     subtitle: "写入任务、执行任务组、取消或回安全区"
 
     ScrollView {
-        Layout.fillWidth: true
-        Layout.fillHeight: true
+        anchors.fill: parent
         clip: true
 
         ColumnLayout {

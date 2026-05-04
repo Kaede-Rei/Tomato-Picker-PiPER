@@ -39,8 +39,7 @@ C.PagePanel {
     }
 
     ScrollView {
-        Layout.fillWidth: true
-        Layout.fillHeight: true
+        anchors.fill: parent
         clip: true
 
         ColumnLayout {

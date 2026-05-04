@@ -12,9 +12,7 @@ C.PagePanel {
     subtitle: "显示 ROS、相机、任务和 GUI 事件"
 
     ScrollView {
-        id: log_scroll
-        Layout.fillWidth: true
-        Layout.fillHeight: true
+        anchors.fill: parent
         clip: true
 
         TextArea {

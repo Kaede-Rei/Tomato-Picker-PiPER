@@ -14,7 +14,7 @@ Item {
         anchors.margins: -8
         y: 10
         radius: shadow.corner_radius + 8
-        color: Qt.rgba(0, 0, 0, 0.06 * shadow.strength)
+        color: Qt.rgba(0, 0, 0, 0.050 * shadow.strength)
     }
 
     Rectangle {
@@ -22,14 +22,14 @@ Item {
         anchors.margins: -18
         y: 22
         radius: shadow.corner_radius + 18
-        color: Qt.rgba(0, 0, 0, 0.035 * shadow.strength)
+        color: Qt.rgba(0, 0, 0, 0.028 * shadow.strength)
     }
 
     Rectangle {
         anchors.fill: parent
-        anchors.margins: -32
-        y: 38
-        radius: shadow.corner_radius + 32
-        color: Qt.rgba(0, 0, 0, 0.018 * shadow.strength)
+        anchors.margins: -30
+        y: 36
+        radius: shadow.corner_radius + 30
+        color: Qt.rgba(0, 0, 0, 0.014 * shadow.strength)
     }
 }
