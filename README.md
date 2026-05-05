@@ -80,33 +80,46 @@
 
 ```text
 piper-ws/
-├── README.md
-├── can-activate.sh
-├── piper-start.sh
-├── piper_test.py
-├── hand-eye/                         # 手眼采集与标定工具
-├── picture/                          # 手眼数据采集目录
-├── outputs/                          # 手眼标定输出目录
-├── piper_ros/                        # PiPER 官方 ROS 工作区
-├── tomato_car_description/           # 整车 URDF 与 MoveIt 配置
-├── piper_tomato/                     # 本项目主工作区
-│   ├── PiPER 机械臂接口文档.md
+├── LICENSE                             # MIT License
+├── orbbec/                             # Orbbec 相机驱动 ROS
+│   ├── pyorbbecsdk/                    # Python Orbbec SDK
 │   └── src/
-│       ├── platform/
-│       │   └── piper_msgs2/          # 自定义 Action/Service/Msg
+├── piper_ros/                          # PiPER ROS
+├── piper_sdk/                          # PiPER Python SDK                 
+├── piper_tomato/                       # 本项目主工作区
+│   ├── PiPER 机械臂接口文档.md         # 接口与命令文档
+│   └── src/
+│       │   app/
+│       │   ├── piper_gui/              # PySide6/QML 多相机 GUI 与 ROI 工具
+│       │   ├── piper_interface/        # ROS Action/Service 接口层
+│       │   └── piper_task/             # 采摘任务管理与状态机
 │       ├── device/
-│       │   └── piper_camera/         # Gemini335L 相机节点
+│       │   └── piper_camera/           # Gemini335L Orbbec 三相机节点
 │       ├── domain/
-│       │   └── piper_controller/     # MoveIt 控制与运动规划封装
-│       ├── service/
-│       │   ├── piper_commander/      # 命令分发
-│       │   └── piper_perception/     # 点云生成与 Octomap 输入控制
-│       └── app/
-│           ├── piper_interface/      # ROS Action/Service 接口层
-│           ├── piper_task/           # 任务管理与采摘状态机
-│           └── piper_gui/            # ROI 选点与任务下发 GUI
-├── piper_sdk/                        # Python SDK
-└── ros_env/                          # Ubuntu 22.04 Noetic 环境辅助脚本
+│       │   └── trac_ik/                # MoveIt IK 插件封装
+│       │   infra/
+│       │   ├── serail/                 # linux 串口驱动库
+│       │   ├── tl_expected/            # C++23 std::expected 的第三方实现
+│       │   └── tl_optional/            # C++17 std::optional 的第三方实现
+│       ├── platform/
+│       │   ├── piper_controller/       # MoveIt 控制与运动规划封装
+│       │   ├── piper_msgs2/            # 自定义 Action/Service/Msg
+│       │   └── serial_driver/          # 末端串口通信驱动
+│       └── service/
+│           ├── piper_acm_guard/        # 阶段性 ACM 管理
+│           ├── piper_commander/        # 命令分发中心
+│           └── piper_perception/       # 点云生成、TF 变换、Octomap 输入
+├── README.md
+├── ros_env/                            # Ubuntu 22.04 Noetic 环境管理脚本
+├── scripts/                            # 启动脚本与测试工具
+│   ├── can-activate.sh                 # CAN 接口激活脚本
+│   ├── piper-start.sh                  # 系统一键启动脚本
+│   ├── piper_test.py                   # 功能测试脚本
+│   └── config.json                     # 配置文件
+└── tomato_car_description/             # 整车 URDF、MoveIt 与 Mesh
+    └── src/
+        ├── tomato_car_description/     # 整车 URDF、Mesh、模型定义
+        └── tomato_car_moveit/          # MoveIt 规划场景、SRDF、控制器配置
 ```
 
 ---
