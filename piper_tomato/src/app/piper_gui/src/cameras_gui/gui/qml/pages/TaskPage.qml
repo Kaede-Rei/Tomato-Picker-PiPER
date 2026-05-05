@@ -11,24 +11,34 @@ C.PagePanel {
 
     function task_payload() {
         return {
+            groupName: group_name.text,
             group_name: group_name.text,
+            taskId: parseInt(task_id.text),
             task_id: parseInt(task_id.text),
             description: task_desc.text,
-            task_type: task_type.currentIndex,
-            use_eef: use_eef.checked,
-            use_place_pose: use_place.checked,
+            retryTimes: parseInt(retry_times.text),
             retry_times: parseInt(retry_times.text),
-            go_safe_after_cancel: go_safe_after_cancel.checked,
+            taskType: task_type.currentText,
+            task_type: task_type.currentText,
+            groupSort: group_sort.currentText,
+            group_sort: group_sort.currentText,
+            weightOrient: parseFloat(weight_orient.text),
+            weight_orient: parseFloat(weight_orient.text),
+            useEef: use_eef.checked,
+            use_eef: use_eef.checked,
+            usePlace: use_place.checked,
+            use_place: use_place.checked,
+            goHomeAfterFinish: go_home_after_finish.checked,
             go_home_after_finish: go_home_after_finish.checked,
-            group_sort_type: group_sort.currentIndex,
-            weight_orient: parseFloat(weight_orient.text)
+            goSafeAfterCancel: go_safe_after_cancel.checked,
+            go_safe_after_cancel: go_safe_after_cancel.checked
         };
     }
 
     function place_payload() {
         return {
-            target_type: place_type.currentText === "Pose" ? "pose" : "point",
-            frame_id: "base_link",
+            type: place_type.currentText,
+            frame: "base_link",
             x: parseFloat(place_x.text),
             y: parseFloat(place_y.text),
             z: parseFloat(place_z.text),
@@ -39,23 +49,33 @@ C.PagePanel {
     }
 
     ScrollView {
+        id: task_scroll
         anchors.fill: parent
         clip: true
+        contentWidth: availableWidth
+        contentHeight: Math.max(availableHeight, task_row.implicitHeight + 2)
+        ScrollBar.vertical.policy: ScrollBar.AsNeeded
+        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
         RowLayout {
-            width: parent.width
+            id: task_row
+            width: task_scroll.availableWidth
+            height: Math.max(task_scroll.availableHeight, implicitHeight)
             spacing: 14
 
             Rectangle {
+                id: basic_card
                 Layout.fillWidth: true
                 Layout.preferredWidth: 560
-                Layout.minimumHeight: 210
+                Layout.preferredHeight: Math.max(238, basic_content.implicitHeight + 28)
+                Layout.alignment: Qt.AlignTop
                 radius: 16
                 color: Qt.rgba(1, 1, 1, 0.52)
                 border.color: Qt.rgba(0, 0, 0, 0.08)
                 border.width: 1
 
                 ColumnLayout {
+                    id: basic_content
                     anchors.fill: parent
                     anchors.margins: 14
                     spacing: 10
@@ -183,15 +203,18 @@ C.PagePanel {
             }
 
             Rectangle {
+                id: place_card
                 Layout.fillWidth: true
                 Layout.preferredWidth: 520
-                Layout.minimumHeight: 210
+                Layout.preferredHeight: Math.max(238, place_content.implicitHeight + 28)
+                Layout.alignment: Qt.AlignTop
                 radius: 16
                 color: Qt.rgba(1, 1, 1, 0.46)
                 border.color: Qt.rgba(0, 0, 0, 0.08)
                 border.width: 1
 
                 ColumnLayout {
+                    id: place_content
                     anchors.fill: parent
                     anchors.margins: 14
                     spacing: 10

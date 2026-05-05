@@ -12,27 +12,36 @@ C.PagePanel {
     signal commit_roi_requested
 
     title: "目标框选"
-    subtitle: "左键添加多边形顶点，双击闭合并计算目标点"
+    subtitle: "左键添加 3 个多边形顶点，第三个点后自动闭合并计算目标点"
 
     ScrollView {
+        id: page_scroll
         anchors.fill: parent
         clip: true
+        contentWidth: availableWidth
+        contentHeight: Math.max(availableHeight, content_row.implicitHeight + 2)
+        ScrollBar.vertical.policy: ScrollBar.AsNeeded
+        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
         RowLayout {
-            width: parent.width
+            id: content_row
+            width: page_scroll.availableWidth
+            height: Math.max(page_scroll.availableHeight, implicitHeight)
             spacing: 14
 
             Rectangle {
+                id: target_card
                 Layout.fillWidth: true
                 Layout.preferredWidth: 680
-                Layout.fillHeight: true
-                Layout.minimumHeight: 156
+                Layout.preferredHeight: Math.max(174, page_scroll.availableHeight, target_card_content.implicitHeight + 28)
+                Layout.alignment: Qt.AlignTop
                 radius: 16
                 color: Qt.rgba(1, 1, 1, 0.52)
                 border.color: Qt.rgba(0, 0, 0, 0.08)
                 border.width: 1
 
                 ColumnLayout {
+                    id: target_card_content
                     anchors.fill: parent
                     anchors.margins: 14
                     spacing: 8
@@ -60,39 +69,60 @@ C.PagePanel {
                         }
                     }
 
-                    TextArea {
-                        text: page.target_text
-                        readOnly: true
-                        wrapMode: TextArea.Wrap
+                    Rectangle {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        Layout.minimumHeight: 86
+                        Layout.minimumHeight: 96
+                        radius: 14
+                        color: Qt.rgba(1, 1, 1, 0.62)
+                        border.color: Qt.rgba(0, 0, 0, 0.08)
+                        border.width: 1
+                        clip: true
 
-                        color: C.Theme.text_primary
-                        font.family: C.Theme.mono_font_stack
-                        font.pixelSize: 13
+                        Flickable {
+                            id: target_text_flick
+                            anchors.fill: parent
+                            anchors.margins: 1
+                            clip: true
+                            boundsBehavior: Flickable.StopAtBounds
+                            contentWidth: Math.max(width, target_text_edit.implicitWidth + 24)
+                            contentHeight: Math.max(height, target_text_edit.implicitHeight + 24)
 
-                        background: Rectangle {
-                            radius: 14
-                            color: Qt.rgba(1, 1, 1, 0.62)
-                            border.color: Qt.rgba(0, 0, 0, 0.08)
-                            border.width: 1
+                            TextEdit {
+                                id: target_text_edit
+                                x: 12
+                                y: 12
+                                width: Math.max(1, target_text_flick.width - 24)
+                                text: page.target_text
+                                readOnly: true
+                                selectByMouse: true
+                                wrapMode: TextEdit.Wrap
+                                color: C.Theme.text_primary
+                                font.family: C.Theme.mono_font_stack
+                                font.pixelSize: 13
+                            }
+
+                            ScrollBar.vertical: ScrollBar {
+                                policy: target_text_flick.contentHeight > target_text_flick.height + 1 ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+                            }
                         }
                     }
                 }
             }
 
             Rectangle {
+                id: op_card
                 Layout.fillWidth: true
                 Layout.preferredWidth: 360
-                Layout.fillHeight: true
-                Layout.minimumHeight: 156
+                Layout.preferredHeight: Math.max(174, page_scroll.availableHeight, op_card_content.implicitHeight + 28)
+                Layout.alignment: Qt.AlignTop
                 radius: 16
                 color: Qt.rgba(1, 1, 1, 0.46)
                 border.color: Qt.rgba(0, 0, 0, 0.08)
                 border.width: 1
 
                 ColumnLayout {
+                    id: op_card_content
                     anchors.fill: parent
                     anchors.margins: 14
                     spacing: 10
@@ -107,7 +137,7 @@ C.PagePanel {
 
                     Text {
                         Layout.fillWidth: true
-                        text: "在上方图像区框选番茄区域。闭合后会自动计算目标点，也可以在调整 ROI 后手动重新计算。"
+                        text: "在上方图像区左键依次点选 3 个顶点。第三个点后会自动闭合并计算目标点；右键可清空 ROI。视频区支持滚轮缩放，按住鼠标中键拖拽平移。"
                         wrapMode: Text.WordWrap
                         color: C.Theme.text_secondary
                         font.family: C.Theme.font_stack

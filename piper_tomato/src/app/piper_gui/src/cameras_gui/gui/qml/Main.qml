@@ -29,6 +29,7 @@ ApplicationWindow {
     property string preview_source: "image://cameras/wrist?rev=0"
 
     property string target_text: "未选择目标"
+    property var locked_target_pixel: ({})
     property string task_status: "未连接"
     property string logs: ""
 
@@ -83,6 +84,7 @@ ApplicationWindow {
         function onTarget_changed(raw) {
             var obj = JSON.parse(raw);
             root.update_target_text(obj);
+            root.update_target_marker(obj);
         }
 
         function onTask_status_changed(message) {
@@ -188,6 +190,27 @@ ApplicationWindow {
         root.target_text = "相机: " + obj.camera + "\n" + "像素: (" + obj.pixel.u.toFixed(1) + ", " + obj.pixel.v.toFixed(1) + ")\n" + "深度: " + obj.depthM.toFixed(3) + " m\n" + "相机坐标: " + root.fmt3(obj.cameraXYZ) + "\n" + "目标坐标[" + obj.targetFrame + "]: " + root.fmt3(obj.targetXYZ);
     }
 
+    function update_target_marker(obj) {
+        if (!obj || !obj.pixel) {
+            root.locked_target_pixel = ({});
+            return;
+        }
+
+        var u = obj.pixel.u !== undefined ? obj.pixel.u : obj.pixel.x;
+        var v = obj.pixel.v !== undefined ? obj.pixel.v : obj.pixel.y;
+
+        if (u === undefined || v === undefined) {
+            root.locked_target_pixel = ({});
+            return;
+        }
+
+        root.locked_target_pixel = {
+            camera: obj.camera || root.preview_camera,
+            x: Number(u),
+            y: Number(v)
+        };
+    }
+
     function state_json() {
         return JSON.stringify({
             preview_camera: root.preview_camera,
@@ -203,11 +226,13 @@ ApplicationWindow {
 
             if (!result.ok) {
                 root.target_text = "目标选择失败：\n" + result.message;
+                root.locked_target_pixel = ({});
                 root.append_log("目标选择失败：" + result.message);
                 return "目标选择失败：" + result.message;
             }
 
             root.update_target_text(result);
+            root.update_target_marker(result);
             root.append_log("目标已锁定：" + result.camera + " -> " + result.targetFrame);
             return "目标已锁定：" + result.camera + " -> " + result.targetFrame;
         });
@@ -364,10 +389,12 @@ ApplicationWindow {
                         camera_statuses: root.camera_statuses
                         preview_camera: root.preview_camera
                         preview_source: root.preview_source
+                        target_pixel: root.locked_target_pixel
                         task_status: root.task_status
 
                         onPreview_camera_requested: function (camera_name) {
                             root.begin_operation("切换相机", "正在切换到 " + camera_name + " 图像流...", function () {
+                                root.locked_target_pixel = ({});
                                 root.preview_camera = camera_name;
                                 backend.set_preview_camera(camera_name);
                                 return "已切换到 " + camera_name;
@@ -376,6 +403,10 @@ ApplicationWindow {
 
                         onRoi_commit_requested: function (payload) {
                             root.commit_roi(payload);
+                        }
+
+                        onRoi_cleared: {
+                            root.locked_target_pixel = ({});
                         }
                     }
 
@@ -499,7 +530,10 @@ ApplicationWindow {
                                 visible: root.current_page === 1
                                 target_text: root.target_text
 
-                                onClear_roi_requested: preview_panel.clear_roi()
+                                onClear_roi_requested: {
+                                    preview_panel.clear_roi();
+                                    root.locked_target_pixel = ({});
+                                }
                                 onCommit_roi_requested: preview_panel.commit_roi()
                             }
 
