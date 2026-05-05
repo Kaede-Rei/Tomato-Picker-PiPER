@@ -26,6 +26,124 @@ def _loads(raw: str) -> dict:
     return json.loads(raw) if raw else {}
 
 
+def _as_bool(value, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+
+    text = str(value).strip().lower()
+    if text in {"1", "true", "yes", "y", "on", "enable", "enabled", "启用", "是"}:
+        return True
+    if text in {"0", "false", "no", "n", "off", "disable", "disabled", "禁用", "否"}:
+        return False
+    return default
+
+
+def _as_float(value, default: float = 0.0, name: str = "参数") -> float:
+    if value is None or value == "":
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"{name} 必须是数字，当前为 {value!r}")
+
+
+def _as_int(value, default: int = 0, name: str = "参数", min_value=None, max_value=None) -> int:
+    if value is None or value == "":
+        result = default
+    else:
+        try:
+            result = int(float(value))
+        except (TypeError, ValueError):
+            raise ValueError(f"{name} 必须是整数或可识别枚举，当前为 {value!r}")
+
+    if min_value is not None:
+        result = max(min_value, result)
+    if max_value is not None:
+        result = min(max_value, result)
+    return result
+
+
+def _enum_int(value, mapping: dict, default: int, name: str) -> int:
+    if value is None or value == "":
+        return default
+
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return _as_int(value, default=default, name=name)
+
+    text = str(value).strip()
+    key = text.upper().replace("-", "_").replace(" ", "_")
+    if key in mapping:
+        return mapping[key]
+
+    return _as_int(text, default=default, name=name)
+
+
+def _normalize_task_config(task: dict) -> dict:
+    task = task or {}
+
+    task_type = _enum_int(
+        task.get("task_type", task.get("taskType", 1)),
+        {
+            "PICK": 1,
+            "TASK_PICK": 1,
+            "MOVE_ONLY": 0,
+            "MOVE": 0,
+            "TASK_MOVE_ONLY": 0,
+        },
+        default=1,
+        name="任务类型",
+    )
+
+    group_sort_type = _enum_int(
+        task.get("group_sort_type", task.get("group_sort", task.get("groupSort", 0))),
+        {
+            "ID": 0,
+            "GROUP_SORT_ID": 0,
+            "DIST": 1,
+            "DISTANCE": 1,
+            "GROUP_SORT_DIST": 1,
+        },
+        default=0,
+        name="任务组排序方式",
+    )
+
+    return {
+        "group_name": str(task.get("group_name", task.get("groupName", "gui_pick")) or "gui_pick"),
+        "task_id": _as_int(task.get("task_id", task.get("taskId", 1)), default=1, name="任务 ID", min_value=0),
+        "description": str(task.get("description", "GUI采摘任务") or "GUI采摘任务"),
+        "retry_times": _as_int(task.get("retry_times", task.get("retryTimes", 0)), default=0, name="重试次数", min_value=0, max_value=255),
+        "task_type": task_type,
+        "group_sort_type": group_sort_type,
+        "weight_orient": _as_float(task.get("weight_orient", task.get("weightOrient", 0.30)), default=0.30, name="姿态权重"),
+        "use_eef": _as_bool(task.get("use_eef", task.get("useEef", True)), default=True),
+        "use_place_pose": _as_bool(task.get("use_place_pose", task.get("use_place", task.get("usePlace", True))), default=True),
+        "go_home_after_finish": _as_bool(task.get("go_home_after_finish", task.get("goHomeAfterFinish", True)), default=True),
+        "go_safe_after_cancel": _as_bool(task.get("go_safe_after_cancel", task.get("goSafeAfterCancel", True)), default=True),
+    }
+
+
+def _normalize_place_config(place: dict) -> dict:
+    place = place or {}
+    raw_type = place.get("target_type", place.get("type", "Point"))
+    type_key = str(raw_type or "Point").strip().lower().replace("-", "_").replace(" ", "_")
+    target_type = "pose" if type_key in {"pose", "place_target_pose"} else "point"
+
+    return {
+        "target_type": target_type,
+        "frame_id": str(place.get("frame_id", place.get("frame", "base_link")) or "base_link"),
+        "x": _as_float(place.get("x", 0.0), default=0.0, name="放置点 X"),
+        "y": _as_float(place.get("y", 0.20), default=0.20, name="放置点 Y"),
+        "z": _as_float(place.get("z", 0.20), default=0.20, name="放置点 Z"),
+        "roll": _as_float(place.get("roll", 0.0), default=0.0, name="放置姿态 Roll"),
+        "pitch": _as_float(place.get("pitch", 0.0), default=0.0, name="放置姿态 Pitch"),
+        "yaw": _as_float(place.get("yaw", 0.0), default=0.0, name="放置姿态 Yaw"),
+    }
+
+
 class CamerasGuiBackend(QObject):
     log_changed = Signal(str)
     state_changed = Signal(str)
@@ -289,26 +407,27 @@ class CamerasGuiBackend(QObject):
             return _dumps({"ok": False, "message": "尚未选择有效目标"})
 
         state = _loads(raw_state)
-        task = state.get("task", self.config.get("task", {}))
-        place = state.get("place", self.config.get("place", {}))
-        group_config = {
-            "group_sort_type": int(task.get("group_sort_type", 0)),
-            "weight_orient": float(task.get("weight_orient", 0.30)),
-            "go_home_after_finish": bool(task.get("go_home_after_finish", True)),
-        }
 
         try:
+            task = _normalize_task_config(state.get("task", self.config.get("task", {})))
+            place = _normalize_place_config(state.get("place", self.config.get("place", {})))
+            group_config = {
+                "group_sort_type": task["group_sort_type"],
+                "weight_orient": task["weight_orient"],
+                "go_home_after_finish": task["go_home_after_finish"],
+            }
+
             self.pick_client.upsert_task(
-                group_name=task.get("group_name", "gui_pick"),
-                task_id=int(task.get("task_id", 1)),
-                description=task.get("description", "GUI采摘任务"),
+                group_name=task["group_name"],
+                task_id=task["task_id"],
+                description=task["description"],
                 target_xyz=tuple(self.last_target["targetXYZ"]),
                 target_frame_id=self.last_target["targetFrame"],
-                task_type=int(task.get("task_type", 0)),
-                use_eef=bool(task.get("use_eef", True)),
-                retry_times=int(task.get("retry_times", 0)),
-                go_safe_after_cancel=bool(task.get("go_safe_after_cancel", True)),
-                use_place_pose=bool(task.get("use_place_pose", True)),
+                task_type=task["task_type"],
+                use_eef=task["use_eef"],
+                retry_times=task["retry_times"],
+                go_safe_after_cancel=task["go_safe_after_cancel"],
+                use_place_pose=task["use_place_pose"],
                 place_config=place,
                 group_config=group_config,
             )
@@ -324,19 +443,20 @@ class CamerasGuiBackend(QObject):
             return _dumps({"ok": False, "message": "采摘动作未连接"})
 
         state = _loads(raw_state)
-        task = state.get("task", self.config.get("task", {}))
-        group_config = {
-            "group_sort_type": int(task.get("group_sort_type", 0)),
-            "weight_orient": float(task.get("weight_orient", 0.30)),
-            "go_home_after_finish": bool(task.get("go_home_after_finish", True)),
-        }
 
         try:
+            task = _normalize_task_config(state.get("task", self.config.get("task", {})))
+            group_config = {
+                "group_sort_type": task["group_sort_type"],
+                "weight_orient": task["weight_orient"],
+                "go_home_after_finish": task["go_home_after_finish"],
+            }
+
             self.pick_client.execute_group(
-                group_name=task.get("group_name", "gui_pick"),
-                use_eef=bool(task.get("use_eef", True)),
-                retry_times=int(task.get("retry_times", 0)),
-                go_safe_after_cancel=bool(task.get("go_safe_after_cancel", True)),
+                group_name=task["group_name"],
+                use_eef=task["use_eef"],
+                retry_times=task["retry_times"],
+                go_safe_after_cancel=task["go_safe_after_cancel"],
                 group_config=group_config,
             )
             msg = "任务组执行请求已发送"

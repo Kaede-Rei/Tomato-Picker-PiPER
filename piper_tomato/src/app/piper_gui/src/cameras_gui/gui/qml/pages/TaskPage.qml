@@ -19,9 +19,11 @@ C.PagePanel {
             retryTimes: parseInt(retry_times.text),
             retry_times: parseInt(retry_times.text),
             taskType: task_type.currentText,
-            task_type: task_type.currentText,
+            task_type_name: task_type.currentText,
+            task_type: task_type.currentText === "PICK" ? 1 : 0,
             groupSort: group_sort.currentText,
             group_sort: group_sort.currentText,
+            group_sort_type: group_sort.currentText === "DIST" ? 1 : 0,
             weightOrient: parseFloat(weight_orient.text),
             weight_orient: parseFloat(weight_orient.text),
             useEef: use_eef.checked,
@@ -38,7 +40,9 @@ C.PagePanel {
     function place_payload() {
         return {
             type: place_type.currentText,
+            target_type: place_type.currentText.toLowerCase(),
             frame: "base_link",
+            frame_id: "base_link",
             x: parseFloat(place_x.text),
             y: parseFloat(place_y.text),
             z: parseFloat(place_z.text),

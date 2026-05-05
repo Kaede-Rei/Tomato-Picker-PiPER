@@ -571,16 +571,26 @@ ApplicationWindow {
                                 onUpsert_task_requested: {
                                     root.begin_operation("写入任务", "正在把当前框选目标写入任务队列...", function () {
                                         var r = JSON.parse(backend.upsert_current_task(root.state_json()));
-                                        root.append_log(r.message);
-                                        return r.message;
+                                        var msg = r.message || "写入任务返回空消息";
+                                        root.append_log(msg);
+                                        if (!r.ok) {
+                                            root.task_status = "写入任务失败：" + msg;
+                                            root.operation_title = "写入任务失败";
+                                        }
+                                        return msg;
                                     });
                                 }
 
                                 onExecute_group_requested: {
                                     root.begin_operation("执行任务组", "正在发送任务组执行请求...", function () {
                                         var r = JSON.parse(backend.execute_group(root.state_json()));
-                                        root.append_log(r.message);
-                                        return r.message;
+                                        var msg = r.message || "执行任务组返回空消息";
+                                        root.append_log(msg);
+                                        if (!r.ok) {
+                                            root.task_status = "执行任务组失败：" + msg;
+                                            root.operation_title = "执行任务组失败";
+                                        }
+                                        return msg;
                                     });
                                 }
 

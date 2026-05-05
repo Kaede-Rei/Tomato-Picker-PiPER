@@ -68,8 +68,6 @@ C.PagePanel {
                         }
 
                         C.StatusPill {
-                            max_width: 88
-                            Layout.preferredWidth: implicitWidth
                             label: {
                                 var st = page.camera_statuses[camera_card.modelData] || {};
                                 var ready = st.color_received || st.colorReady;

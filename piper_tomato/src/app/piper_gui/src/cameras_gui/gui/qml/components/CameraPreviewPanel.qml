@@ -358,9 +358,7 @@ C.GlassPanel {
             }
 
             C.StatusPill {
-                max_width: Math.max(100, Math.min(280, panel.width * 0.24))
-                Layout.preferredWidth: Math.min(max_width, implicitWidth)
-                Layout.maximumWidth: max_width
+                max_width: 220
                 label: panel.task_status
                 accent: panel.task_status_accent
             }

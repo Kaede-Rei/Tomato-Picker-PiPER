@@ -69,8 +69,10 @@ class PickActionClient:
         goal.group_sort_type = int(
             group_config.get("group_sort_type", PickTaskGoal.GROUP_SORT_ID)
         )
-        goal.weight_orient = float(group_config.get("weight_orient", 0.30))
-        goal.go_home_after_finish = bool(group_config.get("go_home_after_finish", True))
+        goal.group_dist_weight_orient = float(group_config.get("weight_orient", 0.30))
+        goal.group_go_home_after_finish = bool(
+            group_config.get("go_home_after_finish", True)
+        )
 
         if use_place_pose:
             goal.use_place_pose = True
@@ -123,8 +125,10 @@ class PickActionClient:
         goal.group_sort_type = int(
             group_config.get("group_sort_type", PickTaskGoal.GROUP_SORT_ID)
         )
-        goal.weight_orient = float(group_config.get("weight_orient", 0.30))
-        goal.go_home_after_finish = bool(group_config.get("go_home_after_finish", True))
+        goal.group_dist_weight_orient = float(group_config.get("weight_orient", 0.30))
+        goal.group_go_home_after_finish = bool(
+            group_config.get("go_home_after_finish", True)
+        )
         goal.use_eef = bool(use_eef)
         goal.retry_times = max(0, min(255, int(retry_times)))
         goal.go_safe_after_cancel = bool(go_safe_after_cancel)
