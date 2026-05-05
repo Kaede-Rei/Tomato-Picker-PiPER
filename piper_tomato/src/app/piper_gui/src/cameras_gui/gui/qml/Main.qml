@@ -37,7 +37,7 @@ ApplicationWindow {
     property real page_scale: 1.0
     property real page_offset: 0.0
     property bool is_maximized: false
-    property var nav_items: ["相机", "框选", "任务", "执行", "日志"]
+    property var nav_items: ["相机", "框选", "任务", "日志"]
 
     readonly property bool maximized_view: root.visibility === Window.Maximized
     readonly property real outer_margin: maximized_view ? 0 : 12
@@ -562,11 +562,6 @@ ApplicationWindow {
                                 id: task_page
                                 anchors.fill: parent
                                 visible: root.current_page === 2
-                            }
-
-                            P.ExecutePage {
-                                anchors.fill: parent
-                                visible: root.current_page === 3
 
                                 onUpsert_task_requested: {
                                     root.begin_operation("写入任务", "正在把当前框选目标写入任务队列...", function () {
@@ -611,7 +606,7 @@ ApplicationWindow {
 
                             P.LogPage {
                                 anchors.fill: parent
-                                visible: root.current_page === 4
+                                visible: root.current_page === 3
                                 logs: root.logs
                             }
                         }
