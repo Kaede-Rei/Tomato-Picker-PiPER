@@ -23,7 +23,7 @@ piper_tomato/src/platform/piper_msgs2
 2. 编译 `piper_tomato`
 3. 激活 CAN 设备
 4. 确认 MoveIt 配置可启动
-5. 如使用相机/点云避障，确认 Gemini335L 已连接
+5. 如使用相机/点云避障，确认 Orbbec 腕部/中景/远景相机按需连接
 6. 如使用 GUI 采摘，确认 `/pick_action` 可用
 
 启动：
@@ -72,6 +72,10 @@ roslaunch piper_interface piper_start.launch
 | `/piper/camera/wrist/depth_registered/image_raw` | `sensor_msgs/Image` | 对齐到彩色图的深度图，`32FC1`，单位 m |
 | `/piper/camera/wrist/depth_registered/camera_info` | `sensor_msgs/CameraInfo` | 对齐深度内参 |
 | `/piper/camera/wrist/lrm_distance` | `std_msgs/Float32` | LRM 单点测距，单位 m |
+| `/piper/camera/mid/color/image_raw` | `sensor_msgs/Image` | 中景相机彩色图 |
+| `/piper/camera/mid/depth_to_color` | `sensor_msgs/Image` | 中景相机对齐深度 |
+| `/piper/camera/far/color/image_raw` | `sensor_msgs/Image` | 远景相机彩色图 |
+| `/piper/camera/far/depth_to_color` | `sensor_msgs/Image` | 远景相机对齐深度 |
 | `/piper/perception/cloud/raw` | `sensor_msgs/PointCloud2` | 相机系原始点云 |
 | `/piper/perception/cloud/base` | `sensor_msgs/PointCloud2` | 转到 `base_link` 的点云 |
 | `/piper/perception/cloud/filtered` | `sensor_msgs/PointCloud2` | 工作空间裁剪和滤波后的点云 |
@@ -370,7 +374,8 @@ EXECUTE_TASK_GROUP
 ### 10.2 GUI 任务流
 
 ```text
-绘制 ROI
+选择 wrist / mid / far 相机
+  -> 绘制 ROI
   -> 计算目标像素
   -> depth_registered / LRM 获取目标深度
   -> 相机系目标点
@@ -411,7 +416,42 @@ tcp_compensation:
 - 补偿后的目标点直接写入 `PickTaskGoal.target_point`
 - 如果目标输出坐标系不是 `frames.tcp_frame`，GUI 会保留原始目标点并提示补偿未应用
 
-### 10.4 PICK 阶段
+### 10.4 GUI 字体与多相机配置
+
+QML GUI 默认按以下字体栈显示：
+
+- UI 字体优先：`Maple Mono Normal NF CN`
+- 日志 / 坐标等宽字体优先：`JetBrains Mono`
+
+仓库内置字体文件位于：
+
+```text
+piper_tomato/src/app/piper_gui/ttf/
+```
+
+建议安装到用户字体目录：
+
+```bash
+mkdir -p ~/.local/share/fonts/tomato-picker-piper
+cp piper_tomato/src/app/piper_gui/ttf/*.ttf ~/.local/share/fonts/tomato-picker-piper/
+fc-cache -fv
+```
+
+GUI 多相机配置位于：
+
+```text
+piper_tomato/src/app/piper_gui/config/cameras_gui.yaml
+```
+
+默认相机键名：
+
+| 键名 | 角色 | 默认 target frame |
+|---|---|---|
+| `wrist` | 腕上近景 | `arm_link_tcp` |
+| `mid` | 中景外参相机 | `base_link` |
+| `far` | 外景预测相机 | `base_link` |
+
+### 10.5 PICK 阶段
 
 ```cpp
 #define PICK_STAGE_TABLE \

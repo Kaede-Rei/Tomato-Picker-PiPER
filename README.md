@@ -1,11 +1,11 @@
 
 <div align="center">
 
-# PiPER-ROS: PiPER 机械臂 ROS 控制系统
+# Tomato-Picker-PiPER: 整车 + 机械臂 + 三相机番茄采摘 ROS 系统
 
-基于 **ROS Noetic + MoveIt + PiPER 机械臂 + Gemini335L 腕上相机** 的番茄采摘实验平台
+基于 **ROS Noetic + MoveIt + tomato_car_description 整车模型 + PiPER 机械臂 + Orbbec 三相机** 的番茄采摘实验平台
 
-本项目围绕“GUI 目标选择 → 任务流调度 → MoveIt 运动规划 → 末端执行器控制 → 腕上相机环境点云 → 采摘阶段碰撞策略”构建完整闭环，用于验证农业采摘机械臂的软件控制链、感知接入与任务级执行逻辑
+本项目围绕“整车模型与 TF → 三相机感知接入 → GUI 目标选择 → 任务流调度 → MoveIt 运动规划 → 末端执行器控制 → 点云环境建模 → 采摘阶段碰撞策略”构建完整闭环，用于验证番茄采摘车的软件控制链、感知接入与任务级执行逻辑
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![ROS: Noetic](https://img.shields.io/badge/ROS-Noetic-blue.svg)](http://wiki.ros.org/noetic)
@@ -20,10 +20,12 @@
 ## 1. 系统能力概览
 
 - PiPER 机械臂 ROS 控制接入
+- `tomato_car_description` 整车 URDF、轮系、PiPER 机械臂、腕部/中景/远景相机模型集成
 - MoveIt 规划、执行与当前状态查询
 - `/move_arm`、`/simple_move_arm`、`/pick_action`、`/arm_config`、`/arm_query`、`/eef_cmd` 接口
-- 图形化 ROI 选点与采摘任务写入
-- Gemini335L 腕上相机接入
+- PySide6/QML 多相机 GUI，支持腕上近景、中景外参相机、远景预测相机切换
+- 图形化 ROI 选点、采摘任务写入、TCP 平移补偿兜底
+- Orbbec 腕部/中景/远景三相机接入
 - Depth → Color 对齐深度图发布
 - LRM 单点距离发布，用于近距离目标深度 fallback
 - 相机到法兰的手眼 TF 发布
@@ -60,16 +62,17 @@
 
 | 类别 | 当前配置 |
 |---|---|
+| 整车模型 | `tomato_car_description`，包含底盘、轮系、PiPER 机械臂、三相机安装位 |
 | 机械臂 | PiPER 6-DOF |
 | 末端执行器 | 舵机夹爪 / 双指夹爪接口 |
-| 相机 | Orbbec Gemini335L |
+| 相机 | Orbbec 腕上近景 + 中景外参 + 远景预测三相机配置 |
 | 主机 | Ubuntu 20.04 / 22.04 |
 | 通信 | USB-CAN，默认 `can0`，bitrate=1000000 |
 | ROS | ROS Noetic |
 | 规划 | MoveIt 1 |
 | 点云处理 | PCL, pcl_ros, tf2_sensor_msgs |
 | GUI | Python, PySide6/QML, OpenCV |
-| 相机 SDK | pyorbbecsdk |
+| 相机 SDK / ROS 驱动 | Orbbec SDK, pyorbbecsdk, OrbbecSDK_ROS1 |
 
 ---
 
@@ -85,6 +88,7 @@ piper-ws/
 ├── picture/                          # 手眼数据采集目录
 ├── outputs/                          # 手眼标定输出目录
 ├── piper_ros/                        # PiPER 官方 ROS 工作区
+├── tomato_car_description/           # 整车 URDF 与 MoveIt 配置
 ├── piper_tomato/                     # 本项目主工作区
 │   ├── PiPER 机械臂接口文档.md
 │   └── src/
@@ -133,6 +137,14 @@ cd ./orbbec/pyorbbecsdk && sudo chmod +x ./install_udev_rules.sh && sudo ./insta
 
 pip install python-can piper_sdk
 sudo usermod -aG dialout $USER
+```
+
+GUI 默认优先使用仓库内附带的 Maple Mono NF CN 与 JetBrains Mono 字体；建议先安装字体，避免中文、数字和日志等宽显示退回到系统字体：
+
+```bash
+mkdir -p ~/.local/share/fonts/tomato-picker-piper
+cp piper_tomato/src/app/piper_gui/ttf/*.ttf ~/.local/share/fonts/tomato-picker-piper/
+fc-cache -fv
 ```
 
 Ubuntu 22.04 使用 `ros_env` / micromamba 请参考 `ros_env/README.md`
@@ -209,6 +221,14 @@ roslaunch piper_interface piper_start.launch use_fake_controller:=true
 source piper_tomato/devel/setup.bash
 roslaunch piper_gui cameras_gui.launch
 ```
+
+GUI 读取 `piper_tomato/src/app/piper_gui/config/cameras_gui.yaml`，默认包含三路相机：
+
+| 相机键名 | 角色 | 默认用途 |
+|---|---|---|
+| `wrist` | 腕上近景 | 近距离 ROI 选点，默认输出到 `arm_link_tcp`，可优先使用 LRM |
+| `mid` | 中景外参相机 | 中距离观测，默认输出到 `base_link` |
+| `far` | 外景预测相机 | 远距离候选目标/场景观测，默认输出到 `base_link` |
 
 GUI 典型流程：
 
@@ -500,6 +520,11 @@ rostopic hz /piper/perception/cloud/raw
 
 - PiPER ROS: https://github.com/agilexrobotics/piper_ros
 - PiPER SDK: https://github.com/agilexrobotics/piper_sdk
+
+感谢 Orbbec 提供相机硬件生态、SDK 与 ROS1 驱动基础，本项目的三相机接入、深度图、CameraInfo、对齐深度与 LRM 距离链路基于 Orbbec SDK / pyorbbecsdk / OrbbecSDK_ROS1 构建：
+
+- Orbbec: https://www.orbbec.com/
+- OrbbecSDK_ROS1: https://github.com/orbbec/OrbbecSDK_ROS1
 
 同时感谢以下优秀开源项目：
 

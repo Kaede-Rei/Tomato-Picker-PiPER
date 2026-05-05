@@ -24,5 +24,6 @@ outputs/
 picture/
 
 plan.md
+RELEASE.md
 
 piper_tomato/src/CMakeLists.txt
