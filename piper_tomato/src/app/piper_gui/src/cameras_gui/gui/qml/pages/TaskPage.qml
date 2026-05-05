@@ -57,6 +57,56 @@ C.PagePanel {
         };
     }
 
+    function tcp_compensation_payload() {
+        return {
+            enabled: enable_tcp_comp.checked,
+            dx: parseFloat(tcp_comp_x.text),
+            dy: parseFloat(tcp_comp_y.text),
+            dz: parseFloat(tcp_comp_z.text)
+        };
+    }
+
+    function set_combo_text(combo, value) {
+        var target = String(value);
+        for (var i = 0; i < combo.model.length; ++i) {
+            if (String(combo.model[i]) === target) {
+                combo.currentIndex = i;
+                return;
+            }
+        }
+    }
+
+    function load_config(task, place, tcp_compensation) {
+        task = task || {};
+        place = place || {};
+        tcp_compensation = tcp_compensation || {};
+
+        group_name.text = task.group_name || task.groupName || group_name.text;
+        task_id.text = String(task.task_id !== undefined ? task.task_id : (task.taskId !== undefined ? task.taskId : task_id.text));
+        task_desc.text = task.description || task_desc.text;
+        retry_times.text = String(task.retry_times !== undefined ? task.retry_times : (task.retryTimes !== undefined ? task.retryTimes : retry_times.text));
+        set_combo_text(task_type, (task.task_type === 0 || task.taskType === 0) ? "MOVE_ONLY" : (task.task_type_name || task.taskType || "PICK"));
+        set_combo_text(group_sort, (task.group_sort_type === 1 || task.groupSort === 1) ? "DIST" : (task.group_sort || task.groupSort || "ID"));
+        weight_orient.text = String(task.weight_orient !== undefined ? task.weight_orient : (task.weightOrient !== undefined ? task.weightOrient : weight_orient.text));
+        use_eef.checked = task.use_eef !== undefined ? task.use_eef : (task.useEef !== undefined ? task.useEef : use_eef.checked);
+        use_place.checked = task.use_place_pose !== undefined ? task.use_place_pose : (task.usePlace !== undefined ? task.usePlace : use_place.checked);
+        go_home_after_finish.checked = task.go_home_after_finish !== undefined ? task.go_home_after_finish : (task.goHomeAfterFinish !== undefined ? task.goHomeAfterFinish : go_home_after_finish.checked);
+        go_safe_after_cancel.checked = task.go_safe_after_cancel !== undefined ? task.go_safe_after_cancel : (task.goSafeAfterCancel !== undefined ? task.goSafeAfterCancel : go_safe_after_cancel.checked);
+
+        set_combo_text(place_type, (place.target_type || place.type || "point").toString().toLowerCase() === "pose" ? "Pose" : "Point");
+        place_x.text = String(place.x !== undefined ? place.x : place_x.text);
+        place_y.text = String(place.y !== undefined ? place.y : place_y.text);
+        place_z.text = String(place.z !== undefined ? place.z : place_z.text);
+        place_roll.text = String(place.roll !== undefined ? place.roll : place_roll.text);
+        place_pitch.text = String(place.pitch !== undefined ? place.pitch : place_pitch.text);
+        place_yaw.text = String(place.yaw !== undefined ? place.yaw : place_yaw.text);
+
+        enable_tcp_comp.checked = tcp_compensation.enabled === true;
+        tcp_comp_x.text = Number(tcp_compensation.dx !== undefined ? tcp_compensation.dx : 0).toFixed(4);
+        tcp_comp_y.text = Number(tcp_compensation.dy !== undefined ? tcp_compensation.dy : 0).toFixed(4);
+        tcp_comp_z.text = Number(tcp_compensation.dz !== undefined ? tcp_compensation.dz : 0).toFixed(4);
+    }
+
     ScrollView {
         id: task_scroll
         anchors.fill: parent
@@ -333,6 +383,88 @@ C.PagePanel {
                             font.family: C.Theme.font_stack
                             font.pixelSize: 12
                         }
+                    }
+                }
+            }
+
+            Rectangle {
+                id: tcp_comp_card
+                Layout.fillWidth: true
+                Layout.preferredHeight: Math.max(112, tcp_comp_content.implicitHeight + 26)
+                radius: 16
+                color: Qt.rgba(1, 1, 1, 0.48)
+                border.color: Qt.rgba(0, 0, 0, 0.08)
+                border.width: 1
+
+                ColumnLayout {
+                    id: tcp_comp_content
+                    anchors.fill: parent
+                    anchors.margins: 13
+                    spacing: 10
+
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        Text {
+                            text: "TCP 平移补偿"
+                            color: C.Theme.text_primary
+                            font.family: C.Theme.font_stack
+                            font.pixelSize: 15
+                            font.bold: true
+                        }
+
+                        Item {
+                            Layout.fillWidth: true
+                        }
+
+                        CheckBox {
+                            id: enable_tcp_comp
+                            text: "启用"
+                            checked: false
+                        }
+                    }
+
+                    GridLayout {
+                        columns: 6
+                        columnSpacing: 10
+                        rowSpacing: 10
+                        Layout.fillWidth: true
+
+                        C.FormLabel {
+                            text: "X"
+                        }
+                        C.MacTextField {
+                            id: tcp_comp_x
+                            text: "0.0200"
+                            Layout.fillWidth: true
+                        }
+
+                        C.FormLabel {
+                            text: "Y"
+                        }
+                        C.MacTextField {
+                            id: tcp_comp_y
+                            text: "0.0200"
+                            Layout.fillWidth: true
+                        }
+
+                        C.FormLabel {
+                            text: "Z"
+                        }
+                        C.MacTextField {
+                            id: tcp_comp_z
+                            text: "0.0100"
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: "补偿值按 TCP 坐标系米制平移，只在目标输出坐标系为 TCP frame 时应用。"
+                        color: C.Theme.text_secondary
+                        font.family: C.Theme.font_stack
+                        font.pixelSize: 12
+                        wrapMode: Text.WordWrap
                     }
                 }
             }

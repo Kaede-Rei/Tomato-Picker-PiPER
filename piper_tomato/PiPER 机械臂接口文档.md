@@ -129,7 +129,7 @@ start:
 - `eef.enabled=false` 时，末端执行器不会初始化
 - `eef.type` 当前主要支持 `servo_gripper` 与 `two_finger_gripper`
 - GUI 默认使用 `/pick_action`，而不是直接调用 `/move_arm`
-- TCP 坐标系由 URDF 中的 `link_tcp` 定义
+- TCP 坐标系由 URDF 定义，GUI 配置默认使用 `arm_link_tcp`
 
 ---
 
@@ -374,12 +374,44 @@ EXECUTE_TASK_GROUP
   -> 计算目标像素
   -> depth_registered / LRM 获取目标深度
   -> 相机系目标点
-  -> TF 转到 flange / tcp
+  -> TF 转到目标输出坐标系
+  -> 可选 TCP 平移补偿
   -> 通过 PickTaskAction 写入任务
   -> 执行任务组
 ```
 
-### 10.3 PICK 阶段
+### 10.3 GUI TCP 平移补偿
+
+QML GUI 的任务页提供 `TCP 平移补偿` 开关和 `X/Y/Z` 输入，单位为米。补偿流程发生在 GUI 后端写入 `/pick_action` 之前：
+
+```text
+相机点 -> TF 转换到目标 frame -> 若目标 frame == frames.tcp_frame 且补偿启用 -> target += [dx, dy, dz]
+```
+
+默认配置位于：
+
+```text
+piper_tomato/src/app/piper_gui/config/cameras_gui.yaml
+```
+
+```yaml
+frames:
+  tcp_frame: arm_link_tcp
+
+tcp_compensation:
+  enabled: false
+  dx: 0.020
+  dy: 0.020
+  dz: 0.010
+```
+
+说明：
+
+- 该补偿是标定残差兜底，不修改 TF 树
+- 补偿后的目标点直接写入 `PickTaskGoal.target_point`
+- 如果目标输出坐标系不是 `frames.tcp_frame`，GUI 会保留原始目标点并提示补偿未应用
+
+### 10.4 PICK 阶段
 
 ```cpp
 #define PICK_STAGE_TABLE \
@@ -647,7 +679,13 @@ print(client.get_result())
 
 ```bash
 source piper_tomato/devel/setup.bash
-rosrun piper_gui piper_gui.py
+roslaunch piper_gui cameras_gui.launch
+```
+
+等价脚本入口：
+
+```bash
+rosrun piper_gui cameras_gui_qml.py
 ```
 
 ### 15.4 控制 Octomap

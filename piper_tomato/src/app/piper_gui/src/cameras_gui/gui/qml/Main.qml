@@ -1,4 +1,4 @@
-pragma ComponentBehavior: Bound
+pragma ComponentBehavior: Bound;
 
 import QtQuick
 import QtQuick.Window
@@ -24,6 +24,7 @@ ApplicationWindow {
     property var cameras: ({})
     property var camera_names: []
     property var camera_statuses: ({})
+    property var tcp_compensation: ({})
 
     property string preview_camera: "wrist"
     property string preview_source: "image://cameras/wrist?rev=0"
@@ -168,6 +169,9 @@ ApplicationWindow {
     function load_state(next_state) {
         root.cameras = next_state.cameras || {};
         root.camera_names = next_state.camera_names || next_state.cameraNames || Object.keys(root.cameras);
+        root.tcp_compensation = next_state.tcp_compensation || next_state.tcpCompensation || {};
+
+        task_page.load_config(next_state.task || {}, next_state.place || {}, root.tcp_compensation);
 
         if (root.camera_names.length > 0) {
             root.preview_camera = next_state.preview_camera || next_state.previewCamera || root.camera_names[0];
@@ -205,7 +209,10 @@ ApplicationWindow {
     }
 
     function update_target_text(obj) {
-        root.target_text = "相机: " + obj.camera + "\n" + "像素: (" + obj.pixel.u.toFixed(1) + ", " + obj.pixel.v.toFixed(1) + ")\n" + "深度: " + obj.depthM.toFixed(3) + " m\n" + "相机坐标: " + root.fmt3(obj.cameraXYZ) + "\n" + "目标坐标[" + obj.targetFrame + "]: " + root.fmt3(obj.targetXYZ);
+        var comp_note = "";
+        if (obj.tcpCompensation && obj.tcpCompensation.applied)
+            comp_note = "\n原始目标[" + obj.targetFrame + "]: " + root.fmt3(obj.rawTargetXYZ) + "\nTCP补偿: (" + obj.tcpCompensation.dx.toFixed(4) + ", " + obj.tcpCompensation.dy.toFixed(4) + ", " + obj.tcpCompensation.dz.toFixed(4) + ")";
+        root.target_text = "相机: " + obj.camera + "\n" + "像素: (" + obj.pixel.u.toFixed(1) + ", " + obj.pixel.v.toFixed(1) + ")\n" + "深度: " + obj.depthM.toFixed(3) + " m\n" + "相机坐标: " + root.fmt3(obj.cameraXYZ) + comp_note + "\n" + "目标坐标[" + obj.targetFrame + "]: " + root.fmt3(obj.targetXYZ);
     }
 
     function update_target_marker(obj) {
@@ -234,11 +241,13 @@ ApplicationWindow {
             preview_camera: root.preview_camera,
             cameras: root.cameras,
             task: task_page.task_payload(),
-            place: task_page.place_payload()
+            place: task_page.place_payload(),
+            tcp_compensation: task_page.tcp_compensation_payload()
         });
     }
 
     function commit_roi(payload) {
+        payload.tcpCompensation = task_page.tcp_compensation_payload();
         root.begin_operation("计算目标点", "正在根据 ROI 计算深度与目标坐标...", function () {
             var result = JSON.parse(backend.commit_polygon_selection(JSON.stringify(payload)));
 
@@ -251,8 +260,13 @@ ApplicationWindow {
 
             root.update_target_text(result);
             root.update_target_marker(result);
-            root.append_log("目标已锁定：" + result.camera + " -> " + result.targetFrame);
-            return "目标已锁定：" + result.camera + " -> " + result.targetFrame;
+            var note = "目标已锁定：" + result.camera + " -> " + result.targetFrame;
+            if (result.tcpCompensation && result.tcpCompensation.applied)
+                note += "，已应用 TCP 补偿";
+            else if (result.tcpCompensation && result.tcpCompensation.skippedReason)
+                note += "，TCP 补偿未应用：" + result.tcpCompensation.skippedReason;
+            root.append_log(note);
+            return note;
         });
     }
 

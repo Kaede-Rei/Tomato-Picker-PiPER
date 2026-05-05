@@ -144,6 +144,17 @@ def _normalize_place_config(place: dict) -> dict:
     }
 
 
+def _normalize_tcp_compensation_config(tcp_compensation: dict) -> dict:
+    tcp_compensation = tcp_compensation or {}
+
+    return {
+        "enabled": _as_bool(tcp_compensation.get("enabled", False), default=False),
+        "dx": _as_float(tcp_compensation.get("dx", 0.0), default=0.0, name="TCP 补偿 X"),
+        "dy": _as_float(tcp_compensation.get("dy", 0.0), default=0.0, name="TCP 补偿 Y"),
+        "dz": _as_float(tcp_compensation.get("dz", 0.0), default=0.0, name="TCP 补偿 Z"),
+    }
+
+
 class CamerasGuiBackend(QObject):
     log_changed = Signal(str)
     state_changed = Signal(str)
@@ -373,13 +384,28 @@ class CamerasGuiBackend(QObject):
             cam_xyz,
         )
 
-        tcp_comp = self.config.get("tcp_compensation", {})
-        if output_frame == self.config.get("frames", {}).get("tcp_frame", "link_tcp"):
-            if bool(tcp_comp.get("enabled", False)):
+        raw_target_xyz = target_xyz
+        tcp_comp = _normalize_tcp_compensation_config(
+            payload.get(
+                "tcpCompensation",
+                payload.get("tcp_compensation", self.config.get("tcp_compensation", {})),
+            )
+        )
+        tcp_frame = self.config.get("frames", {}).get("tcp_frame", "link_tcp")
+        tcp_comp_applied = False
+        tcp_comp_skipped_reason = ""
+
+        if tcp_comp["enabled"]:
+            if output_frame == tcp_frame:
                 target_xyz = (
-                    target_xyz[0] + float(tcp_comp.get("dx", 0.0)),
-                    target_xyz[1] + float(tcp_comp.get("dy", 0.0)),
-                    target_xyz[2] + float(tcp_comp.get("dz", 0.0)),
+                    target_xyz[0] + tcp_comp["dx"],
+                    target_xyz[1] + tcp_comp["dy"],
+                    target_xyz[2] + tcp_comp["dz"],
+                )
+                tcp_comp_applied = True
+            else:
+                tcp_comp_skipped_reason = (
+                    f"输出坐标系为 {output_frame}，不是 TCP 坐标系 {tcp_frame}"
                 )
 
         result = {
@@ -391,7 +417,13 @@ class CamerasGuiBackend(QObject):
             "cameraFrame": snap.depth_frame_id,
             "cameraXYZ": list(cam_xyz),
             "targetFrame": output_frame,
+            "rawTargetXYZ": list(raw_target_xyz),
             "targetXYZ": list(target_xyz),
+            "tcpCompensation": {
+                **tcp_comp,
+                "applied": tcp_comp_applied,
+                "skippedReason": tcp_comp_skipped_reason,
+            },
         }
 
         self.last_target = result

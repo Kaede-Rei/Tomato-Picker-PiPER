@@ -68,7 +68,7 @@
 | ROS | ROS Noetic |
 | 规划 | MoveIt 1 |
 | 点云处理 | PCL, pcl_ros, tf2_sensor_msgs |
-| GUI | Python, PyQt5, OpenCV |
+| GUI | Python, PySide6/QML, OpenCV |
 | 相机 SDK | pyorbbecsdk |
 
 ---
@@ -207,15 +207,15 @@ roslaunch piper_interface piper_start.launch use_fake_controller:=true
 
 ```bash
 source piper_tomato/devel/setup.bash
-rosrun piper_gui piper_gui.py
+roslaunch piper_gui cameras_gui.launch
 ```
 
 GUI 典型流程：
 
 1. 启动 `piper_start.launch`
-2. 启动 `piper_gui.py`
+2. 启动 `cameras_gui.launch`
 3. 在图像上左键绘制 ROI，双击闭合
-4. 检查目标坐标、深度来源与 TCP 坐标
+4. 检查目标坐标、深度来源与 TCP 坐标；如需兜底，任务页启用 TCP 平移补偿并设置 `X/Y/Z`
 5. 点击“写入 / 更新当前任务”
 6. 点击“执行当前任务组”
 
