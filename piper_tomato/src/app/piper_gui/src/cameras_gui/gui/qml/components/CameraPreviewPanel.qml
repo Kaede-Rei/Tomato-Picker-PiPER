@@ -14,6 +14,7 @@ C.GlassPanel {
     property string preview_camera: "wrist"
     property string preview_source: "image://cameras/wrist?rev=0"
     property string task_status: "未连接"
+    property color task_status_accent: "#32D74B"
 
     property var roi_points: []
     property bool roi_closed: false
@@ -357,8 +358,11 @@ C.GlassPanel {
             }
 
             C.StatusPill {
+                max_width: Math.max(100, Math.min(280, panel.width * 0.24))
+                Layout.preferredWidth: Math.min(max_width, implicitWidth)
+                Layout.maximumWidth: max_width
                 label: panel.task_status
-                accent: panel.task_status.indexOf("失败") >= 0 ? "#FF453A" : "#32D74B"
+                accent: panel.task_status_accent
             }
         }
 

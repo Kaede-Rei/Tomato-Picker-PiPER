@@ -180,6 +180,24 @@ ApplicationWindow {
         root.logs += "[" + now.toLocaleTimeString() + "] " + message + "\n";
     }
 
+    function status_accent(message) {
+        var m = String(message || "");
+
+        if (m.indexOf("失败") >= 0 || m.indexOf("错误") >= 0 || m.indexOf("异常") >= 0)
+            return "#FF453A";
+
+        if (m.indexOf("未") >= 0 || m.indexOf("等待") >= 0 || m.indexOf("断开") >= 0)
+            return "#FF9F0A";
+
+        if (m.indexOf("正在") >= 0 || m.indexOf("请求") >= 0 || m.indexOf("执行") >= 0 || m.indexOf("写入") >= 0 || m.indexOf("计算") >= 0 || m.indexOf("取消") >= 0)
+            return "#0A84FF";
+
+        if (m.indexOf("已连接") >= 0 || m.indexOf("成功") >= 0 || m.indexOf("完成") >= 0)
+            return "#32D74B";
+
+        return "#8E8E93";
+    }
+
     function fmt3(arr) {
         if (!arr || arr.length < 3)
             return "--";
@@ -351,8 +369,10 @@ ApplicationWindow {
                         }
 
                         C.StatusPill {
+                            Layout.fillWidth: true
+                            max_width: Math.max(80, sidebar.width - 36)
                             label: root.task_status
-                            accent: root.task_status.indexOf("失败") >= 0 ? "#FF453A" : root.task_status.indexOf("未") >= 0 ? "#FF9F0A" : "#32D74B"
+                            accent: root.status_accent(root.task_status)
                         }
 
                         C.MacSecondaryButton {
@@ -391,6 +411,7 @@ ApplicationWindow {
                         preview_source: root.preview_source
                         target_pixel: root.locked_target_pixel
                         task_status: root.task_status
+                        task_status_accent: root.status_accent(root.task_status)
 
                         onPreview_camera_requested: function (camera_name) {
                             root.begin_operation("切换相机", "正在切换到 " + camera_name + " 图像流...", function () {
