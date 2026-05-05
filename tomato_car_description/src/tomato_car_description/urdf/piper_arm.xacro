@@ -204,7 +204,7 @@
         </joint>
         <link name="${prefix}_link_tcp" />
         <joint name="${prefix}_joint_tcp" type="fixed">
-            <origin xyz="0 0.018 0.13181" rpy="0 0 0" />
+            <origin xyz="-0.005 0.018 0.13181" rpy="0 0 0" />
             <parent link="${prefix}_link6" />
             <child link="${prefix}_link_tcp" />
         </joint>

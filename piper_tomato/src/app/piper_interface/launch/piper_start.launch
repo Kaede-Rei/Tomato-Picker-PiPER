@@ -19,6 +19,9 @@
     <arg name="use_rviz" default="true" />
     <arg name="joint_command_topic" default="/piper/joint_ctrl_command" />
 
+    <!-- 车轮关节状态广播节点 （临时硬件节点）-->
+    <node pkg="piper_interface" type="wheel_joint_state_broadcaster.py" name="wheel_joint_state_broadcaster" output="screen" />
+
     <!-- 真机控制 - 启动 PiPER 控制节点 -->
     <group unless="$(arg use_fake_controller)">
         <include file="$(find piper)/launch/start_single_piper.launch">
@@ -31,6 +34,9 @@
 
         <node pkg="piper" type="piper_follow_joint_trajectory_bridge.py" name="arm_controller" output="screen">
             <param name="command_topic" value="$(arg joint_command_topic)" />
+            <rosparam param="joints">
+                [arm_joint1, arm_joint2, arm_joint3, arm_joint4, arm_joint5, arm_joint6]
+            </rosparam>
         </node>
 
         <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
