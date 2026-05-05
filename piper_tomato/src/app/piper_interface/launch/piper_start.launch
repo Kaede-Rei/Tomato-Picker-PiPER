@@ -20,7 +20,15 @@
     <arg name="joint_command_topic" default="/piper/joint_ctrl_command" />
 
     <!-- 车轮关节状态广播节点 （临时硬件节点）-->
-    <node pkg="piper_interface" type="wheel_joint_state_broadcaster.py" name="wheel_joint_state_broadcaster" output="screen" />
+    <node pkg="piper_interface" type="wheel_joint_state_broadcaster.py" name="wheel_joint_state_broadcaster" output="screen">
+        <param name="rate_hz" value="100.0" />
+        <param name="stamp_offset" value="0.0" />
+        <param name="publish_topic" value="/joint_states" />
+
+        <rosparam param="wheel_joint_names">
+        [front_right_wheel_joint, front_left_wheel_joint, behind_right_wheel_joint, behind_left_wheel_joint]
+        </rosparam>
+    </node>
 
     <!-- 真机控制 - 启动 PiPER 控制节点 -->
     <group unless="$(arg use_fake_controller)">
