@@ -5,6 +5,8 @@
     <arg name="joint_command_topic" default="/joint_states" />
     <arg name="joint_state_topic" default="joint_states_single" />
     <arg name="arm_prefix" default="" />
+    <arg name="gripper_exist" default="false" />
+
     <!-- <include file="$(find piper_description)/launch/display_xacro.launch"/> -->
     <!-- 启动机械臂节点 -->
     <node name="piper_ctrl_single_node" pkg="piper" type="piper_ctrl_single_node.py" output="screen">
@@ -13,7 +15,8 @@
         <param name="gripper_val_mutiple" value="$(arg gripper_val_mutiple)" />
         <param name="arm_prefix" value="$(arg arm_prefix)" />
         <!-- <param name="rviz_ctrl_flag" value="true" /> -->
-        <param name="girpper_exist" value="true" />
+        <!-- 注意这里是 gripper_exist，不是 girpper_exist -->
+        <param name="gripper_exist" value="$(arg gripper_exist)" />
         <remap from="joint_ctrl_single" to="$(arg joint_command_topic)" />
         <remap from="joint_states_single" to="$(arg joint_state_topic)" />
     </node>

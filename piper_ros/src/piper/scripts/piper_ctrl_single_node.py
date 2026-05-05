@@ -136,11 +136,15 @@ class C_PiperRosNode:
             f"{prefix}joint4",
             f"{prefix}joint5",
             f"{prefix}joint6",
-            f"{prefix}gripper",
         ]
-        self.joint_states.position = [0.0] * 7
-        self.joint_states.velocity = [0.0] * 7
-        self.joint_states.effort = [0.0] * 7
+        # 只有真的使用 PiPER 原生夹爪时，才把 gripper 当作 joint_state 发布
+        if self.gripper_exist:
+            self.joint_states.name.append(f"{prefix}gripper")
+
+        joint_count = len(self.joint_states.name)
+        self.joint_states.position = [0.0] * joint_count
+        self.joint_states.velocity = [0.0] * joint_count
+        self.joint_states.effort = [0.0] * joint_count
 
         # 创建piper类并打开can接口
         self.piper = C_PiperInterface(can_name=self.can_port)
@@ -298,26 +302,43 @@ class C_PiperRosNode:
         effort_6: float = (
             self.piper.GetArmGripperMsgs().gripper_state.grippers_effort / 1000
         )
-        self.joint_states.header.stamp = rospy.Time.now()
-        self.joint_states.position = [
+        positions = [
             joint_0,
             joint_1,
             joint_2,
             joint_3,
             joint_4,
             joint_5,
-            joint_6,
         ]
-        self.joint_states.velocity = [vel_0, vel_1, vel_2, vel_3, vel_4, vel_5, 0.0]
-        self.joint_states.effort = [
+
+        velocities = [
+            vel_0,
+            vel_1,
+            vel_2,
+            vel_3,
+            vel_4,
+            vel_5,
+        ]
+
+        efforts = [
             effort_0,
             effort_1,
             effort_2,
             effort_3,
             effort_4,
             effort_5,
-            effort_6,
         ]
+
+        if self.gripper_exist:
+            positions.append(joint_6)
+            velocities.append(0.0)
+            efforts.append(effort_6)
+
+        self.joint_states.header.stamp = rospy.Time.now()
+        self.joint_states.position = positions
+        self.joint_states.velocity = velocities
+        self.joint_states.effort = efforts
+
         # 发布所有消息
         self.joint_pub.publish(self.joint_states)
 
