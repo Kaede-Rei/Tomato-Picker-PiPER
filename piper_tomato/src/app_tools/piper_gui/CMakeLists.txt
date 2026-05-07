@@ -1,0 +1,31 @@
+cmake_minimum_required(VERSION 3.0.2)
+project(piper_gui)
+
+find_package(catkin REQUIRED COMPONENTS
+  actionlib
+  actionlib_msgs
+  cv_bridge
+  geometry_msgs
+  piper_contract
+  rospy
+  sensor_msgs
+  std_msgs
+  tf2_geometry_msgs
+  tf2_ros
+)
+
+catkin_python_setup()
+catkin_package()
+
+catkin_install_python(PROGRAMS
+  scripts/cameras_gui_qml.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY config launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+
+install(DIRECTORY src/cameras_gui/gui/qml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/gui
+)

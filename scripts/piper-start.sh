@@ -25,8 +25,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # source ROS 环境
-if [ -f "$SCRIPT_DIR/../piper_ros/devel/setup.bash" ]; then
-    source "$SCRIPT_DIR/../piper_ros/devel/setup.bash"
+if [ -f "$SCRIPT_DIR/../external/piper_ros/devel/setup.bash" ]; then
+    source "$SCRIPT_DIR/../external/piper_ros/devel/setup.bash"
 else
     echo "未找到 PiPER ROS 工作空间，请先编译 ROS 包"
     exit 1
@@ -149,11 +149,11 @@ cleanup() {
 import sys
 import actionlib
 import rospy
-from piper_msgs2.msg import SimpleMoveArmAction, SimpleMoveArmGoal
+from piper_contract.msg import SimpleMoveArmAction, SimpleMoveArmGoal
 
 def main():
     rospy.init_node("piper_exit_zero_checker", anonymous=True, disable_signals=True)
-    client = actionlib.SimpleActionClient("/simple_move_arm", SimpleMoveArmAction)
+    client = actionlib.SimpleActionClient("/piper/simple_move_arm", SimpleMoveArmAction)
 
     if not client.wait_for_server(rospy.Duration(1.5)):
         return 1
@@ -215,7 +215,7 @@ fi
 
 # 启动 ROS Launch
 echo "[2/2] 启动 ROS Launch (附带参数: ${LAUNCH_ARGS[*]})"
-roslaunch piper_interface piper_start.launch "${LAUNCH_ARGS[@]}" &
+roslaunch piper_bringup piper_start.launch "${LAUNCH_ARGS[@]}" &
 ROSLAUNCH_PID=$!
 
 # 只要 roslaunch 成功拉起，cleanup 就可以接管退出流程

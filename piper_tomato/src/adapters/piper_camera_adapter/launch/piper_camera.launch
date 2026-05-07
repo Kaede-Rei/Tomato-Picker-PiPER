@@ -1,0 +1,117 @@
+<launch>
+    <!--
+        Piper 多 Orbbec 相机启动入口
+
+        可用开关:
+          use_wrist: 启动腕部相机，话题前缀为 /camera/wrist
+          use_mid:   启动中景相机，话题前缀为 /camera/mid
+          use_far:   启动远景相机，话题前缀为 /camera/far
+
+        设备绑定参数:
+          <role>_usb_port: 推荐填写稳定的 udev 链接或 video 设备名，
+                           例如 /dev/video0 或重定向后的 /dev/com-1-video、/dev/com-1.4-video
+          <role>_index:    video 设备索引，例如 /dev/video0 对应 0
+                           当 <role>_usb_port 为空时才使用 index
+
+        注意:
+          OrbbecSDK 内部实际按 USB UID 选设备，本包会在运行时把 /dev/com-*、
+          /dev/video* 或 video 索引解析成 SDK 需要的 UID
+          orbbec_device_num 会按 use_wrist/use_mid/use_far 中 true 的数量自动计算
+          如果同一台机器接了额外 Orbbec 设备但不启动，可手动覆盖 orbbec_device_num
+
+        示例:
+          roslaunch piper_camera piper_camera.launch \ use_wrist:=true use_mid:=true use_far:=false \ wrist_usb_port:=/dev/com-1.4-video \ mid_usb_port:=/dev/com-1-video
+          roslaunch piper_camera piper_camera.launch \ use_wrist:=true use_mid:=true use_far:=true \ wrist_index:=2 mid_index:=8 far_index:=0
+    -->
+
+    <arg name="use_wrist" default="true"/>
+    <arg name="use_mid" default="false"/>
+    <arg name="use_far" default="false"/>
+
+    <arg name="wrist_usb_port" default=""/>
+    <arg name="wrist_index" default=""/>
+    <arg name="wrist_serial_number" default=""/>
+
+    <arg name="mid_usb_port" default=""/>
+    <arg name="mid_index" default=""/>
+    <arg name="far_usb_port" default=""/>
+    <arg name="far_index" default=""/>
+
+    <arg name="camera_root_ns" default="/camera"/>
+    <arg name="orbbec_camera_name_root" default="camera"/>
+
+    <arg name="orbbec_device_num" default="$(eval int(arg('use_wrist') in [True, 'true', 'True', '1']) + int(arg('use_mid') in [True, 'true', 'True', '1']) + int(arg('use_far') in [True, 'true', 'True', '1']))"/>
+
+    <arg name="wrist_ns" default="$(arg camera_root_ns)/wrist"/>
+    <arg name="mid_camera_name" default="$(arg orbbec_camera_name_root)/mid"/>
+    <arg name="far_camera_name" default="$(arg orbbec_camera_name_root)/far"/>
+
+    <arg name="wrist_color_frame" default="wrist_cam_color_optical_frame"/>
+    <arg name="wrist_depth_frame" default="wrist_cam_depth_optical_frame"/>
+    <arg name="wrist_registered_frame" default="wrist_cam_color_optical_frame"/>
+
+    <group if="$(arg use_wrist)">
+        <node pkg="piper_camera" type="orbbec_wrist.py" name="orbbec_wrist" output="screen">
+            <rosparam command="load" file="$(find piper_camera)/config/orbbec_wrist.yaml"/>
+            <param name="output_ns" value="$(arg wrist_ns)"/>
+            <param name="usb_port" value="$(arg wrist_usb_port)"/>
+            <param name="camera_index" value="$(arg wrist_index)"/>
+            <param name="serial_number" value="$(arg wrist_serial_number)"/>
+            <param name="color_frame_id" value="$(arg wrist_color_frame)"/>
+            <param name="depth_frame_id" value="$(arg wrist_depth_frame)"/>
+            <param name="depth_registered_frame_id" value="$(arg wrist_registered_frame)"/>
+        </node>
+    </group>
+
+    <group if="$(arg use_mid)">
+        <include file="$(find orbbec_camera)/launch/femto_bolt.launch">
+            <arg name="camera_name" value="$(arg mid_camera_name)"/>
+            <arg name="usb_port" value="$(eval arg('mid_usb_port') if arg('mid_usb_port') else arg('mid_index'))"/>
+            <arg name="device_num" value="$(arg orbbec_device_num)"/>
+            <arg name="sync_mode" value="free_run"/>
+            <arg name="enable_ir" value="false"/>
+            <arg name="enable_accel" value="false"/>
+            <arg name="enable_gyro" value="false"/>
+            <arg name="enable_point_cloud" value="false"/>
+            <arg name="enable_colored_point_cloud" value="false"/>
+            <arg name="enable_sync_output_accel_gyro" value="false"/>
+            <arg name="retry_on_usb3_detection_failure" value="true"/>
+            <arg name="reboot_on_shutdown" value="true"/>
+            <arg name="color_width" value="1280"/>
+            <arg name="color_height" value="720"/>
+            <arg name="color_fps" value="30"/>
+            <arg name="depth_width" value="512"/>
+            <arg name="depth_height" value="512"/>
+            <arg name="depth_fps" value="30"/>
+            <arg name="depth_registration" value="false"/>
+            <arg name="publish_tf" value="false"/>
+            <arg name="tf_prefix" value="mid_cam"/>
+        </include>
+    </group>
+
+    <group if="$(arg use_far)">
+        <include file="$(find orbbec_camera)/launch/femto_bolt.launch">
+            <arg name="camera_name" value="$(arg far_camera_name)"/>
+            <arg name="usb_port" value="$(eval arg('far_usb_port') if arg('far_usb_port') else arg('far_index'))"/>
+            <arg name="device_num" value="$(arg orbbec_device_num)"/>
+            <arg name="sync_mode" value="free_run"/>
+            <arg name="enable_ir" value="false"/>
+            <arg name="enable_accel" value="false"/>
+            <arg name="enable_gyro" value="false"/>
+            <arg name="enable_point_cloud" value="false"/>
+            <arg name="enable_colored_point_cloud" value="false"/>
+            <arg name="enable_sync_output_accel_gyro" value="false"/>
+            <arg name="retry_on_usb3_detection_failure" value="true"/>
+            <arg name="reboot_on_shutdown" value="true"/>
+            <arg name="color_width" value="1280"/>
+            <arg name="color_height" value="720"/>
+            <arg name="color_fps" value="30"/>
+            <arg name="depth_width" value="512"/>
+            <arg name="depth_height" value="512"/>
+            <arg name="depth_fps" value="30"/>
+            <arg name="depth_registration" value="false"/>
+            <arg name="publish_tf" value="false"/>
+            <arg name="tf_prefix" value="far_cam"/>
+        </include>
+    </group>
+</launch>

@@ -5,12 +5,12 @@
 适用范围：
 
 ```text
-piper_tomato/src/app/piper_interface
-piper_tomato/src/app/piper_task
-piper_tomato/src/app/piper_gui
-piper_tomato/src/service/piper_perception
-piper_tomato/src/device/piper_camera
-piper_tomato/src/platform/piper_msgs2
+piper_tomato/src/deployment/piper_bringup
+piper_tomato/src/behavior/piper_pick_behavior
+piper_tomato/src/app_tools/piper_gui
+piper_tomato/src/capabilities/piper_perception
+piper_tomato/src/adapters/piper_camera_adapter
+piper_tomato/src/contract/piper_contract
 ```
 
 ---
@@ -31,7 +31,7 @@ piper_tomato/src/platform/piper_msgs2
 ```bash
 source piper_ros/devel/setup.bash
 source piper_tomato/devel/setup.bash
-roslaunch piper_interface piper_start.launch
+roslaunch piper_bringup piper_start.launch
 ```
 
 或：
@@ -48,34 +48,34 @@ roslaunch piper_interface piper_start.launch
 
 | 名称 | 类型 | 说明 |
 |---|---|---|
-| `/move_arm` | `piper_msgs2/MoveArmAction` | 完整机械臂控制接口 |
-| `/simple_move_arm` | `piper_msgs2/SimpleMoveArmAction` | 简化机械臂控制接口 |
-| `/pick_action` | `piper_msgs2/PickTaskAction` | 任务组/采摘任务接口 |
+| `/piper/move_arm` | `piper_contract/MoveArmAction` | 完整机械臂控制接口 |
+| `/piper/simple_move_arm` | `piper_contract/SimpleMoveArmAction` | 简化机械臂控制接口 |
+| `/pick_action` | `piper_contract/PickTaskAction` | 任务组/采摘任务接口 |
 
 ### 2.2 Service
 
 | 名称 | 类型 | 说明 |
 |---|---|---|
-| `/arm_config` | `piper_msgs2/ConfigArm` | 约束配置 |
-| `/arm_query` | `piper_msgs2/QueryArm` | 当前关节、当前位姿查询 |
-| `/eef_cmd` | `piper_msgs2/CommandEef` | 末端执行器命令 |
-| `/piper/perception/set_octomap_enabled` | `piper_msgs2/CommandOctomap` | MoveIt Octomap 点云输入开关与异步清图 |
+| `/piper/arm_config` | `piper_contract/ConfigArm` | 约束配置 |
+| `/piper/arm_query` | `piper_contract/QueryArm` | 当前关节、当前位姿查询 |
+| `/piper/eef_cmd` | `piper_contract/CommandEef` | 末端执行器命令 |
+| `/piper/perception/set_octomap_enabled` | `piper_contract/CommandOctomap` | MoveIt Octomap 点云输入开关与异步清图 |
 
 ### 2.3 Camera / Perception Topic
 
 | 名称 | 类型 | 说明 |
 |---|---|---|
-| `/piper/camera/wrist/color/image_raw` | `sensor_msgs/Image` | 彩色图 |
-| `/piper/camera/wrist/color/camera_info` | `sensor_msgs/CameraInfo` | 彩色相机内参 |
-| `/piper/camera/wrist/depth/image_raw` | `sensor_msgs/Image` | 原始深度图，`32FC1`，单位 m |
-| `/piper/camera/wrist/depth/camera_info` | `sensor_msgs/CameraInfo` | 原始深度内参 |
-| `/piper/camera/wrist/depth_registered/image_raw` | `sensor_msgs/Image` | 对齐到彩色图的深度图，`32FC1`，单位 m |
-| `/piper/camera/wrist/depth_registered/camera_info` | `sensor_msgs/CameraInfo` | 对齐深度内参 |
-| `/piper/camera/wrist/lrm_distance` | `std_msgs/Float32` | LRM 单点测距，单位 m |
-| `/piper/camera/mid/color/image_raw` | `sensor_msgs/Image` | 中景相机彩色图 |
-| `/piper/camera/mid/depth_to_color` | `sensor_msgs/Image` | 中景相机对齐深度 |
-| `/piper/camera/far/color/image_raw` | `sensor_msgs/Image` | 远景相机彩色图 |
-| `/piper/camera/far/depth_to_color` | `sensor_msgs/Image` | 远景相机对齐深度 |
+| `/camera/wrist/color/image_raw` | `sensor_msgs/Image` | 彩色图 |
+| `/camera/wrist/color/camera_info` | `sensor_msgs/CameraInfo` | 彩色相机内参 |
+| `/camera/wrist/depth/image_raw` | `sensor_msgs/Image` | 原始深度图，`32FC1`，单位 m |
+| `/camera/wrist/depth/camera_info` | `sensor_msgs/CameraInfo` | 原始深度内参 |
+| `/camera/wrist/depth_registered/image_raw` | `sensor_msgs/Image` | 对齐到彩色图的深度图，`32FC1`，单位 m |
+| `/camera/wrist/depth_registered/camera_info` | `sensor_msgs/CameraInfo` | 对齐深度内参 |
+| `/camera/wrist/lrm_distance` | `std_msgs/Float32` | LRM 单点测距，单位 m |
+| `/camera/mid/color/image_raw` | `sensor_msgs/Image` | 中景相机彩色图 |
+| `/camera/mid/depth_to_color` | `sensor_msgs/Image` | 中景相机对齐深度 |
+| `/camera/far/color/image_raw` | `sensor_msgs/Image` | 远景相机彩色图 |
+| `/camera/far/depth_to_color` | `sensor_msgs/Image` | 远景相机对齐深度 |
 | `/piper/perception/cloud/raw` | `sensor_msgs/PointCloud2` | 相机系原始点云 |
 | `/piper/perception/cloud/base` | `sensor_msgs/PointCloud2` | 转到 `base_link` 的点云 |
 | `/piper/perception/cloud/filtered` | `sensor_msgs/PointCloud2` | 工作空间裁剪和滤波后的点云 |
@@ -87,7 +87,7 @@ roslaunch piper_interface piper_start.launch
 主要配置文件：
 
 ```text
-piper_tomato/src/app/piper_interface/config/config.yaml
+piper_tomato/src/deployment/piper_bringup/config/config.yaml
 ```
 
 典型结构：
@@ -105,19 +105,19 @@ start:
 
   arm_move_action:
     enabled: true
-    name: "move_arm"
+    name: "/piper/move_arm"
 
   simple_arm_move_action:
     enabled: true
-    name: "simple_move_arm"
+    name: "/piper/simple_move_arm"
 
   arm_config_service:
     enabled: true
-    name: "arm_config"
+    name: "/piper/arm_config"
 
   arm_query_service:
     enabled: true
-    name: "arm_query"
+    name: "/piper/arm_query"
 
   pick_action:
     enabled: true
@@ -125,14 +125,14 @@ start:
 
   eef_cmd_service:
     enabled: true
-    name: "eef_cmd"
+    name: "/piper/eef_cmd"
 ```
 
 说明：
 
 - `eef.enabled=false` 时，末端执行器不会初始化
 - `eef.type` 当前主要支持 `servo_gripper` 与 `two_finger_gripper`
-- GUI 默认使用 `/pick_action`，而不是直接调用 `/move_arm`
+- GUI 默认使用 `/pick_action`，而不是直接调用 `/piper/move_arm`
 - TCP 坐标系由 URDF 定义，GUI 配置默认使用 `arm_link_tcp`
 
 ---
@@ -171,12 +171,12 @@ start:
 
 ---
 
-## 5. `/move_arm`
+## 5. `/piper/move_arm`
 
 类型：
 
 ```text
-piper_msgs2/MoveArmAction
+piper_contract/MoveArmAction
 ```
 
 主要字段：
@@ -224,12 +224,12 @@ cur_joint
 
 ---
 
-## 6. `/simple_move_arm`
+## 6. `/piper/simple_move_arm`
 
 类型：
 
 ```text
-piper_msgs2/SimpleMoveArmAction
+piper_contract/SimpleMoveArmAction
 ```
 
 主要字段：
@@ -265,12 +265,12 @@ values[]
 
 ---
 
-## 7. `/arm_config`
+## 7. `/piper/arm_config`
 
 类型：
 
 ```text
-piper_msgs2/ConfigArm
+piper_contract/ConfigArm
 ```
 
 Request：
@@ -300,21 +300,21 @@ error_code
 
 ---
 
-## 8. `/arm_query`
+## 8. `/piper/arm_query`
 
 类型：
 
 ```text
-piper_msgs2/QueryArm
+piper_contract/QueryArm
 ```
 
 常用命令：
 
 ```bash
-rosservice call /arm_query "command_type: 12
+rosservice call /piper/arm_query "command_type: 12
 values: []"
 
-rosservice call /arm_query "command_type: 13
+rosservice call /piper/arm_query "command_type: 13
 values: []"
 ```
 
@@ -325,24 +325,24 @@ values: []"
 
 ---
 
-## 9. `/eef_cmd`
+## 9. `/piper/eef_cmd`
 
 类型：
 
 ```text
-piper_msgs2/CommandEef
+piper_contract/CommandEef
 ```
 
 示例：
 
 ```bash
-rosservice call /eef_cmd "command_type: 0
+rosservice call /piper/eef_cmd "command_type: 0
 values: []"
 
-rosservice call /eef_cmd "command_type: 1
+rosservice call /piper/eef_cmd "command_type: 1
 values: []"
 
-rosservice call /eef_cmd "command_type: 2
+rosservice call /piper/eef_cmd "command_type: 2
 values: []"
 ```
 
@@ -358,7 +358,7 @@ values: []"
 类型：
 
 ```text
-piper_msgs2/PickTaskAction
+piper_contract/PickTaskAction
 ```
 
 该接口由任务层提供，用于任务组配置、任务写入、任务执行和取消
@@ -396,7 +396,7 @@ QML GUI 的任务页提供 `TCP 平移补偿` 开关和 `X/Y/Z` 输入，单位�
 默认配置位于：
 
 ```text
-piper_tomato/src/app/piper_gui/config/cameras_gui.yaml
+piper_tomato/src/app_tools/piper_gui/config/cameras_gui.yaml
 ```
 
 ```yaml
@@ -426,21 +426,21 @@ QML GUI 默认按以下字体栈显示：
 仓库内置字体文件位于：
 
 ```text
-piper_tomato/src/app/piper_gui/ttf/
+piper_tomato/src/app_tools/piper_gui/ttf/
 ```
 
 建议安装到用户字体目录：
 
 ```bash
 mkdir -p ~/.local/share/fonts/tomato-picker-piper
-cp piper_tomato/src/app/piper_gui/ttf/*.ttf ~/.local/share/fonts/tomato-picker-piper/
+cp piper_tomato/src/app_tools/piper_gui/ttf/*.ttf ~/.local/share/fonts/tomato-picker-piper/
 fc-cache -fv
 ```
 
 GUI 多相机配置位于：
 
 ```text
-piper_tomato/src/app/piper_gui/config/cameras_gui.yaml
+piper_tomato/src/app_tools/piper_gui/config/cameras_gui.yaml
 ```
 
 默认相机键名：
@@ -517,7 +517,7 @@ piper_tomato/src/app/piper_gui/config/cameras_gui.yaml
 类型：
 
 ```text
-piper_msgs2/CommandOctomap
+piper_contract/CommandOctomap
 ```
 
 语义：
@@ -579,8 +579,8 @@ rosservice call /piper/perception/set_octomap_enabled "{enabled: true, clear_oct
 `depth_registered` 是对齐到彩色图的深度图，推荐作为点云输入
 
 ```text
-/piper/camera/wrist/depth_registered/image_raw
-/piper/camera/wrist/depth_registered/camera_info
+/camera/wrist/depth_registered/image_raw
+/camera/wrist/depth_registered/camera_info
 ```
 
 编码：
@@ -595,7 +595,7 @@ rosservice call /piper/perception/set_octomap_enabled "{enabled: true, clear_oct
 LRM 发布：
 
 ```text
-/piper/camera/wrist/lrm_distance
+/camera/wrist/lrm_distance
 ```
 
 类型：
@@ -632,9 +632,9 @@ color + depth_registered + camera_info
 
 ```yaml
 topics:
-  color_image: /piper/camera/wrist/color/image_raw
-  depth_image: /piper/camera/wrist/depth_registered/image_raw
-  depth_info: /piper/camera/wrist/depth_registered/camera_info
+  color_image: /camera/wrist/color/image_raw
+  depth_image: /camera/wrist/depth_registered/image_raw
+  depth_info: /camera/wrist/depth_registered/camera_info
 
 target_frame: base_link
 pixel_stride: 4
@@ -670,10 +670,10 @@ sor_stddev: 1.0
 ```python
 import rospy
 import actionlib
-from piper_msgs2.msg import MoveArmAction, MoveArmGoal
+from piper_contract.msg import MoveArmAction, MoveArmGoal
 
 rospy.init_node("move_arm_demo")
-client = actionlib.SimpleActionClient("/move_arm", MoveArmAction)
+client = actionlib.SimpleActionClient("/piper/move_arm", MoveArmAction)
 client.wait_for_server()
 
 goal = MoveArmGoal()
@@ -694,10 +694,10 @@ print(client.get_result())
 ```python
 import rospy
 import actionlib
-from piper_msgs2.msg import SimpleMoveArmAction, SimpleMoveArmGoal
+from piper_contract.msg import SimpleMoveArmAction, SimpleMoveArmGoal
 
 rospy.init_node("simple_move_line_demo")
-client = actionlib.SimpleActionClient("/simple_move_arm", SimpleMoveArmAction)
+client = actionlib.SimpleActionClient("/piper/simple_move_arm", SimpleMoveArmAction)
 client.wait_for_server()
 
 goal = SimpleMoveArmGoal()
@@ -757,7 +757,7 @@ rosservice call /piper/perception/set_octomap_enabled "{enabled: true, clear_oct
 
 排查顺序：
 
-1. `/arm_query` 是否能查询当前状态
+1. `/piper/arm_query` 是否能查询当前状态
 2. TF 是否完整
 3. 目标是否超出工作空间
 4. MoveIt 是否已加载 robot model 和 planning scene

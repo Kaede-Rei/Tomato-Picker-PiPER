@@ -1,0 +1,88 @@
+<launch>
+    <arg name="use_fake_controller" default="false" />
+    <arg name="fake_execution_type" default="interpolate" />
+    <arg name="can_port" default="can0" />
+    <arg name="auto_enable" default="true" />
+
+    <!-- 相机参数 -->
+    <arg name="use_wrist_camera" default="true" />
+    <arg name="use_mid_camera" default="false" />
+    <arg name="use_far_camera" default="false" />
+    <arg name="wrist_usb_port" default=""/>
+    <arg name="wrist_index" default=""/>
+    <arg name="mid_usb_port" default=""/>
+    <arg name="mid_index" default=""/>
+    <arg name="far_usb_port" default=""/>
+    <arg name="far_index" default=""/>
+
+    <arg name="use_perception" default="true" />
+    <arg name="use_rviz" default="true" />
+    <arg name="joint_command_topic" default="/piper/joint_ctrl_command" />
+
+    <!-- 车轮关节状态广播节点 （临时硬件节点）-->
+    <node pkg="piper_bringup" type="wheel_joint_state_broadcaster.py" name="wheel_joint_state_broadcaster" output="screen">
+        <param name="rate_hz" value="100.0" />
+        <param name="stamp_offset" value="0.0" />
+        <param name="publish_topic" value="/joint_states" />
+
+        <rosparam param="wheel_joint_names">
+        [front_right_wheel_joint, front_left_wheel_joint, behind_right_wheel_joint, behind_left_wheel_joint]
+        </rosparam>
+    </node>
+
+    <!-- 真机控制 - 启动 PiPER 控制节点 -->
+    <group unless="$(arg use_fake_controller)">
+        <include file="$(find piper)/launch/start_single_piper.launch">
+            <arg name="can_port" value="$(arg can_port)" />
+            <arg name="auto_enable" value="$(arg auto_enable)" />
+            <arg name="joint_command_topic" value="$(arg joint_command_topic)" />
+            <arg name="joint_state_topic" value="/joint_states" />
+            <arg name="arm_prefix" value="arm_" />
+        </include>
+
+        <node pkg="piper" type="piper_follow_joint_trajectory_bridge.py" name="arm_controller" output="screen">
+            <param name="command_topic" value="$(arg joint_command_topic)" />
+            <rosparam param="joints">
+                [arm_joint1, arm_joint2, arm_joint3, arm_joint4, arm_joint5, arm_joint6]
+            </rosparam>
+        </node>
+
+        <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
+    </group>
+
+    <!-- Orbbec 腕部/中景/远景相机启动 -->
+    <include file="$(find piper_camera)/launch/piper_camera.launch" if="$(eval arg('use_wrist_camera') or arg('use_mid_camera') or arg('use_far_camera'))">
+        <arg name="use_wrist" value="$(arg use_wrist_camera)"/>
+        <arg name="use_mid" value="$(arg use_mid_camera)"/>
+        <arg name="use_far" value="$(arg use_far_camera)"/>
+        <arg name="wrist_usb_port" value="$(arg wrist_usb_port)"/>
+        <arg name="wrist_index" value="$(arg wrist_index)"/>
+        <arg name="mid_usb_port" value="$(arg mid_usb_port)"/>
+        <arg name="mid_index" value="$(arg mid_index)"/>
+        <arg name="far_usb_port" value="$(arg far_usb_port)"/>
+        <arg name="far_index" value="$(arg far_index)"/>
+    </include>
+
+    <!-- MoveIt：fake 模式使用 fake controller -->
+    <include file="$(find tomato_car_moveit)/launch/demo.launch" if="$(arg use_fake_controller)">
+        <arg name="moveit_controller_manager" value="fake" />
+        <arg name="fake_execution_type" value="$(arg fake_execution_type)" />
+        <arg name="use_rviz" value="$(arg use_rviz)" />
+    </include>
+
+    <!-- MoveIt：真机模式使用 simple controller，对接 arm_controller/follow_joint_trajectory -->
+    <include file="$(find tomato_car_moveit)/launch/demo.launch" unless="$(arg use_fake_controller)">
+        <arg name="moveit_controller_manager" value="simple" />
+        <arg name="fake_execution_type" value="$(arg fake_execution_type)" />
+        <arg name="use_rviz" value="$(arg use_rviz)" />
+    </include>
+
+    <!-- PiPER 感知 -->
+    <include file="$(find piper_perception)/launch/piper_perception.launch" if="$(arg use_perception)" />
+
+    <!-- 接口节点 -->
+    <node pkg="piper_bringup" type="piper_start" name="piper_start" output="screen">
+        <rosparam command="load" file="$(find piper_bringup)/config/config.yaml" />
+        <param name="start/eef/enabled" value="false" if="$(arg use_fake_controller)" />
+    </node>
+</launch>

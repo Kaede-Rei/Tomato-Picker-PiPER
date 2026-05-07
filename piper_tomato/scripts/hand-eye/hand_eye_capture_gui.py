@@ -104,8 +104,8 @@ class UiConfig:
 
 @dataclass(frozen=True)
 class RosCameraDefaults:
-    color_topic: str = "/piper/camera/wrist/color/image_raw"
-    camera_info_topic: str = "/piper/camera/wrist/color/camera_info"
+    color_topic: str = "/camera/wrist/color/image_raw"
+    camera_info_topic: str = "/camera/wrist/color/camera_info"
 
 
 @dataclass(frozen=True)
@@ -286,7 +286,7 @@ class HandEyeCaptureWindow(QMainWindow):
         help_map = {
             "项目": "dataset_root：样本目录\noutput_root：标定结果输出目录\n当前保存索引：下一次采样写入的编号\n已存在索引：当前目录下已检测到的样本编号\n采集成功后索引自动 +1：保存成功后自动切换到下一个编号",
             "相机": "当前版本订阅 ROS 图像流\ncolor_topic：采样图像话题\ncamera_info_topic：相机模型话题\n当前后端：当前接收到的图像源\n要求：先启动 roscore 和 piper_camera，再启动本 GUI",
-            "棋盘/内参": "board_cols / board_rows：棋盘内角点列数与行数\nsquare_size_m：单个方格边长，单位 m\n优先使用 /piper/camera/wrist/color/camera_info 同步的相机模型\nfx fy cx cy 与 dist：仅作为离线 fallback 或手工覆盖",
+            "棋盘/内参": "board_cols / board_rows：棋盘内角点列数与行数\nsquare_size_m：单个方格边长，单位 m\n优先使用 /camera/wrist/color/camera_info 同步的相机模型\nfx fy cx cy 与 dist：仅作为离线 fallback 或手工覆盖",
             "ROS/位姿": "ROS：当前 ROS/T F 是否可用\n采样时自动从 TF 读取位姿：保存样本时直接读取当前 TF\nbase_frame / tool_frame：TF 查询使用的坐标系名称\ntf_timeout_sec：TF 查询超时\npose_format：位姿数据的语义格式\nrotation_formula：欧拉角转旋转矩阵的顺序\nx/y/z/rx/ry/rz：手动输入或回显的当前机械臂位姿",
             "标定": "min_index / max_index：参与标定的样本编号范围\nrotation_formula / handeye_method：旋转顺序与手眼方法，可选 AUTO\nexclude_indices：额外排除的样本编号\nmax_reprojection_error_px：角点重投影误差阈值\nauto_prune_outliers：是否自动剔除离群样本\nmin_valid_samples：最少有效样本数\nmax_prune_rounds：最多剔除轮数\nmin_rms_improvement_m / min_max_dist_improvement_m：继续剔除所需的最小改善量",
             "物理约束": "constraint_mode：DISABLED 为关闭，SOFT_PREFER 为排序偏好，HARD_FILTER 为严格过滤\nexpected_tx_sign / expected_ty_sign / expected_tz_sign：期望平移符号\nsign_tolerance_m：符号判断容差\nenable_tx/ty/tz_range：是否启用对应轴的平移范围约束\ntx/ty/tz min/max：对应轴允许范围，单位 m\nrequire_z_axis_same_direction：要求相机 z 轴与 flange z 轴同向\nz_axis_cos_min：z 轴夹角余弦阈值",
@@ -598,7 +598,7 @@ class HandEyeCaptureWindow(QMainWindow):
             "D": D.tolist(),
             "R": list(msg.R),
             "P": list(msg.P),
-            "source": "/piper/camera/wrist/color/camera_info",
+            "source": "/camera/wrist/color/camera_info",
             "stream_name": "color",
         }
 

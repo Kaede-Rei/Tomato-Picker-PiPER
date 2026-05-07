@@ -36,13 +36,13 @@ from geometry_msgs.msg import Pose, Point, Quaternion
 from sensor_msgs.msg import JointState
 from actionlib_msgs.msg import GoalStatus
 
-from piper_msgs2.srv import QueryArm, QueryArmRequest
-from piper_msgs2.srv import ConfigArm, ConfigArmRequest
-from piper_msgs2.msg import MoveArmAction, MoveArmGoal
-from piper_msgs2.msg import SimpleMoveArmAction, SimpleMoveArmGoal
+from piper_contract.srv import QueryArm, QueryArmRequest
+from piper_contract.srv import ConfigArm, ConfigArmRequest
+from piper_contract.msg import MoveArmAction, MoveArmGoal
+from piper_contract.msg import SimpleMoveArmAction, SimpleMoveArmGoal
 
 try:
-    from piper_msgs2.srv import CommandEef, CommandEefRequest
+    from piper_contract.srv import CommandEef, CommandEefRequest
 
     HAS_EEF_SERVICE = True
 except Exception:
@@ -168,19 +168,19 @@ class Runner:
         self.eef_srv_name = None
 
         self.launch_cmd = os.environ.get(
-            "TEST_LAUNCH_CMD", "roslaunch --wait piper_interface piper_start.launch"
+            "TEST_LAUNCH_CMD", "roslaunch --wait piper_bringup piper_start.launch"
         )
 
-        self.query_srv_name = rospy.get_param("~arm_query_service", "/arm_query")
-        self.config_srv_name = rospy.get_param("~arm_config_service", "/arm_config")
-        self.move_arm_ns = rospy.get_param("~move_arm_action", "/move_arm")
+        self.query_srv_name = rospy.get_param("~arm_query_service", "/piper/arm_query")
+        self.config_srv_name = rospy.get_param("~arm_config_service", "/piper/arm_config")
+        self.move_arm_ns = rospy.get_param("~move_arm_action", "/piper/move_arm")
         self.simple_move_arm_ns = rospy.get_param(
-            "~simple_move_arm_action", "/simple_move_arm"
+            "~simple_move_arm_action", "/piper/simple_move_arm"
         )
 
-        # eef service 常见命名有两套：/eef_cmd 和 /eef_command
+        # eef service 常见命名有两套：/piper/eef_cmd 和 /piper/eef_command
         self.eef_service_candidates = rospy.get_param(
-            "~eef_cmd_service_candidates", ["/eef_cmd", "/eef_command"]
+            "~eef_cmd_service_candidates", ["/piper/eef_cmd", "/piper/eef_command"]
         )
         if isinstance(self.eef_service_candidates, str):
             self.eef_service_candidates = [self.eef_service_candidates]
@@ -279,7 +279,7 @@ class Runner:
                 self.ok(f"EEF 服务已上线: {self.eef_srv_name}")
             else:
                 self.warn(
-                    "未发现 EEF service（已尝试 /eef_cmd 与 /eef_command）。"
+                    "未发现 EEF service（已尝试 /piper/eef_cmd 与 /piper/eef_command）。"
                     "如果你期望它存在，请重点检查 piper_start.cpp 与 config.yaml 的参数键名是否一致。"
                 )
 
