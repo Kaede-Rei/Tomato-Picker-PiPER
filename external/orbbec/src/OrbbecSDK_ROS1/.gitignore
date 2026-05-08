@@ -18,6 +18,7 @@
 
 # Compiled Dynamic libraries
 *.so
+!SDK/lib/**/*.so
 *.dylib
 *.dll
 .obj-aarch64-linux-gnu/
