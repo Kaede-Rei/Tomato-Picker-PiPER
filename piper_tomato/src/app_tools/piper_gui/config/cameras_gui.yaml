@@ -18,6 +18,11 @@ frames:
   flange_frame: arm_link6
   tcp_frame: arm_link_tcp
   place_frame: base_link
+  frame_aliases:
+    camera/mid_color_optical_frame: mid_cam_color_optical_frame
+    camera/mid_depth_optical_frame: mid_cam_depth_optical_frame
+    camera/far_color_optical_frame: far_cam_color_optical_frame
+    camera/far_depth_optical_frame: far_cam_depth_optical_frame
 
 cameras:
   wrist:
@@ -38,8 +43,8 @@ cameras:
     enabled: true
     color_topic: /camera/mid/color/image_raw
     color_info_topic: /camera/mid/color/camera_info
-    depth_registered_topic: /camera/mid/depth_to_color
-    depth_registered_info_topic: /camera/mid/color/camera_info
+    depth_registered_topic: /camera/mid/depth/image_raw
+    depth_registered_info_topic: /camera/mid/depth/camera_info
     lrm_topic: ""
     target_frame: base_link
     prefer_lrm: false
@@ -50,8 +55,8 @@ cameras:
     enabled: true
     color_topic: /camera/far/color/image_raw
     color_info_topic: /camera/far/color/camera_info
-    depth_registered_topic: /camera/far/depth_to_color
-    depth_registered_info_topic: /camera/far/color/camera_info
+    depth_registered_topic: /camera/far/depth/image_raw
+    depth_registered_info_topic: /camera/far/depth/camera_info
     lrm_topic: ""
     target_frame: base_link
     prefer_lrm: false

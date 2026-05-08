@@ -84,7 +84,7 @@
             <arg name="depth_width" value="512"/>
             <arg name="depth_height" value="512"/>
             <arg name="depth_fps" value="30"/>
-            <arg name="depth_registration" value="false"/>
+            <arg name="depth_registration" value="true"/>
             <arg name="publish_tf" value="false"/>
         </include>
     </group>
@@ -110,7 +110,7 @@
             <arg name="depth_width" value="512"/>
             <arg name="depth_height" value="512"/>
             <arg name="depth_fps" value="30"/>
-            <arg name="depth_registration" value="false"/>
+            <arg name="depth_registration" value="true"/>
             <arg name="publish_tf" value="false"/>
         </include>
     </group>

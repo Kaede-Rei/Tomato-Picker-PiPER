@@ -197,6 +197,13 @@ class CamerasGuiBackend(QObject):
 
         return CameraRole.WRIST
 
+    def _resolve_frame_alias(self, frame_id: str) -> str:
+        frame = str(frame_id or "").strip()
+        aliases = self.config.get("frames", {}).get("frame_aliases", {}) or {}
+        if frame in aliases:
+            return str(aliases[frame])
+        return frame
+
     @Slot(result=str)
     def state_init(self) -> str:
         cameras = self.config.get("cameras", {})
@@ -377,9 +384,12 @@ class CamerasGuiBackend(QObject):
         depth_m = depth_mm / 1000.0
         cam_xyz = depth_to_pointcloud(u, v, depth_m, snap.depth_intrinsics)
 
-        output_frame = payload.get("outputFrame") or camera_config.target_frame
+        source_frame = self._resolve_frame_alias(snap.depth_frame_id)
+        output_frame = self._resolve_frame_alias(
+            payload.get("outputFrame") or camera_config.target_frame
+        )
         target_xyz = self.tf_tools.transform_point(
-            snap.depth_frame_id,
+            source_frame,
             output_frame,
             cam_xyz,
         )
@@ -415,6 +425,7 @@ class CamerasGuiBackend(QObject):
             "depthM": depth_m,
             "useLrm": use_lrm,
             "cameraFrame": snap.depth_frame_id,
+            "tfFrame": source_frame,
             "cameraXYZ": list(cam_xyz),
             "targetFrame": output_frame,
             "rawTargetXYZ": list(raw_target_xyz),

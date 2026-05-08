@@ -11,6 +11,7 @@
 """
 
 import rospy
+import time
 from sensor_msgs.msg import JointState
 
 
@@ -53,7 +54,7 @@ class WheelJointStateBroadcaster:
 
         while not rospy.is_shutdown():
             msg = JointState()
-            msg.header.stamp = rospy.Time.now() + rospy.Duration(self.stamp_offset)
+            msg.header.stamp = rospy.Time.from_sec(time.time() + self.stamp_offset)
             msg.name = self.wheel_joint_names
             msg.position = self.position
             msg.velocity = self.velocity
