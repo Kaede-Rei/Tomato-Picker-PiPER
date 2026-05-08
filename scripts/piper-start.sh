@@ -23,34 +23,35 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ORBBEC_USB_RESOLVER="$SCRIPT_DIR/../piper_tomato/src/adapters/piper_camera_adapter/scripts/piper_orbbec_usb.py"
 
-# source ROS 环境
-if [ -f "$SCRIPT_DIR/../piper_ros/devel/setup.bash" ]; then
-    source "$SCRIPT_DIR/../piper_ros/devel/setup.bash"
+BASE_SETUP="$SCRIPT_DIR/../external/orbbec/devel/setup.bash"
+if [ -f "$BASE_SETUP" ]; then
+    source "$BASE_SETUP"
 else
-    echo "未找到 PiPER ROS 工作空间，请先编译 ROS 包"
+    echo "未找到 ROS 工作空间 setup: $BASE_SETUP，请先编译 ROS 包"
     exit 1
 fi
 
-if [ -f "$SCRIPT_DIR/../piper_tomato/devel/setup.bash" ]; then
-    source "$SCRIPT_DIR/../piper_tomato/devel/setup.bash"
-else
-    echo "未找到 PiPER Tomato 工作空间，请先编译 ROS 包"
-    exit 1
-fi
+for setup in \
+    "$SCRIPT_DIR/../external/piper_ros/devel/setup.bash" \
+    "$SCRIPT_DIR/../piper_tomato/devel/setup.bash"; do
+    if [ -f "$setup" ]; then
+        source "$setup" --extend
+    else
+        echo "未找到 ROS 工作空间 setup: $setup，请先编译 ROS 包"
+        exit 1
+    fi
+done
 
-# 读取 config.json 配置默认参数
 CONFIG_FILE="$SCRIPT_DIR/config.json"
 LAUNCH_ARGS=()
 
 if [ -f "$CONFIG_FILE" ]; then
-    # 获取系统参数
     DISABLE_ON_EXIT=$(python3 -c "import json, sys; print(str(json.load(open('$CONFIG_FILE')).get('system', {}).get('disable_on_exit', False)).lower())" 2>/dev/null || echo "false")
     DELAY_SEC=$(python3 -c "import json, sys; print(json.load(open('$CONFIG_FILE')).get('system', {}).get('delay_sec', 2))" 2>/dev/null || echo "2")
     USE_FAKE_CONTROLLER=$(python3 -c "import json, sys; print(str(json.load(open('$CONFIG_FILE')).get('launch_args', {}).get('use_fake_controller', False)).lower())" 2>/dev/null || echo "false")
     
-    # 提取 launch 文件参数，构造成 kwarg:=value 的格式
-    # 过滤掉空字符串参数（例如空 USB 口配置），以防给 rosparam 传递异常空串
     EXTRA_ARGS=$(python3 -c "
 import json
 try:
@@ -71,7 +72,6 @@ except Exception as e:
         read -ra LAUNCH_ARGS <<< "$EXTRA_ARGS"
     fi
 else
-    # 万一找不到配置文件，回退到默认
     DISABLE_ON_EXIT=false
     DELAY_SEC=2
     USE_FAKE_CONTROLLER=false
@@ -81,7 +81,6 @@ SUCCESS=false
 ROSLAUNCH_PID=""
 CLEANING_UP=false
 
-# 解析 CLI 参数（支持重写配置中的同名标志和引入新 launch 参数）
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --fake|-f)
@@ -114,10 +113,8 @@ while [[ $# -gt 0 ]]; do
             exit 0
             ;;
         *)
-            # 捕获类似 use_camera:=true 这样的额外参数，传递给 roslaunch
             if [[ "$1" == *":="* ]]; then
                LAUNCH_ARGS+=("$1")
-               # 如果用户显式传了 use_fake_controller，我们也要更新 bash 变量以维持逻辑一致
                if [[ "$1" == "use_fake_controller:=true" ]]; then
                    USE_FAKE_CONTROLLER=true
                elif [[ "$1" == "use_fake_controller:=false" ]]; then
@@ -132,8 +129,63 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+launch_arg_value() {
+    local name="$1"
+    local default_value="${2:-}"
+    local item value="$default_value"
+    for item in "${LAUNCH_ARGS[@]}"; do
+        if [[ "$item" == "$name:="* ]]; then
+            value="${item#"$name:="}"
+        fi
+    done
+    printf '%s\n' "$value"
+}
+
+is_true_value() {
+    case "${1,,}" in
+        true|1|yes|on) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+resolve_orbbec_usb_launch_args() {
+    if [ ! -x "$ORBBEC_USB_RESOLVER" ]; then
+        echo "[ERROR] 未找到 Orbbec USB 端口解析器: $ORBBEC_USB_RESOLVER"
+        exit 1
+    fi
+
+    local resolved_args=()
+    local item key value resolved enabled_arg enabled_value
+    for item in "${LAUNCH_ARGS[@]}"; do
+        if [[ "$item" =~ ^(wrist_usb_port|mid_usb_port|far_usb_port):=(.+)$ ]]; then
+            key="${BASH_REMATCH[1]}"
+            value="${BASH_REMATCH[2]}"
+            enabled_arg="use_${key%_usb_port}_camera"
+            enabled_value="$(launch_arg_value "$enabled_arg" "false")"
+            if ! is_true_value "$enabled_value"; then
+                resolved_args+=("$item")
+                continue
+            fi
+            if [[ -n "$value" ]]; then
+                if ! resolved="$(python3 "$ORBBEC_USB_RESOLVER" --strict "$value")"; then
+                    echo "[ERROR] $key 无法解析为 Orbbec SDK USB UID: $value"
+                    exit 1
+                fi
+                if [[ "$resolved" != "$value" ]]; then
+                    echo "[USB] $key: $value -> $resolved"
+                fi
+                resolved_args+=("$key:=$resolved")
+                continue
+            fi
+        fi
+        resolved_args+=("$item")
+    done
+    LAUNCH_ARGS=("${resolved_args[@]}")
+}
+
+resolve_orbbec_usb_launch_args
+
 cleanup() {
-    # 防止重复进入 cleanup
     if [[ "$CLEANING_UP" == true ]]; then
         return
     fi
@@ -149,11 +201,11 @@ cleanup() {
 import sys
 import actionlib
 import rospy
-from piper_msgs2.msg import SimpleMoveArmAction, SimpleMoveArmGoal
+from piper_contract.msg import SimpleMoveArmAction, SimpleMoveArmGoal
 
 def main():
     rospy.init_node("piper_exit_zero_checker", anonymous=True, disable_signals=True)
-    client = actionlib.SimpleActionClient("/simple_move_arm", SimpleMoveArmAction)
+    client = actionlib.SimpleActionClient("/piper/simple_move_arm", SimpleMoveArmAction)
 
     if not client.wait_for_server(rospy.Duration(1.5)):
         return 1
@@ -201,7 +253,6 @@ else
     echo "[MODE] real controller"
 fi
 
-# 配置 CAN 接口
 if [[ "$USE_FAKE_CONTROLLER" == true ]]; then
     echo "[1/2] fake 模式跳过 CAN 配置"
 else
@@ -213,13 +264,10 @@ else
     fi
 fi
 
-# 启动 ROS Launch
 echo "[2/2] 启动 ROS Launch (附带参数: ${LAUNCH_ARGS[*]})"
-roslaunch piper_interface piper_start.launch "${LAUNCH_ARGS[@]}" &
+roslaunch piper_bringup piper_start.launch "${LAUNCH_ARGS[@]}" &
 ROSLAUNCH_PID=$!
 
-# 只要 roslaunch 成功拉起，cleanup 就可以接管退出流程
 SUCCESS=true
 
-# 等待子进程退出
 wait "$ROSLAUNCH_PID" || true

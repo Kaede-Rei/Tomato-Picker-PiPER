@@ -22,7 +22,7 @@
 - PiPER 机械臂 ROS 控制接入
 - `tomato_car_description` 整车 URDF、轮系、PiPER 机械臂、腕部/中景/远景相机模型集成
 - MoveIt 规划、执行与当前状态查询
-- `/move_arm`、`/simple_move_arm`、`/pick_action`、`/arm_config`、`/arm_query`、`/eef_cmd` 接口
+- `/piper/move_arm`、`/piper/simple_move_arm`、`/pick_action`、`/piper/arm_config`、`/piper/arm_query`、`/piper/eef_cmd` 接口
 - PySide6/QML 多相机 GUI，支持腕上近景、中景外参相机、远景预测相机切换
 - 图形化 ROI 选点、采摘任务写入、TCP 平移补偿兜底
 - Orbbec 腕部/中景/远景三相机接入
@@ -81,34 +81,21 @@
 ```text
 piper-ws/
 ├── LICENSE                             # MIT License
-├── orbbec/                             # Orbbec 相机驱动 ROS
-│   ├── pyorbbecsdk/                    # Python Orbbec SDK
-│   └── src/
-├── piper_ros/                          # PiPER ROS
-├── piper_sdk/                          # PiPER Python SDK                 
+├── external/                           # 外部生态与第三方源码
+│   ├── orbbec/                         # Orbbec 相机驱动 ROS
+│   ├── piper_ros/                      # PiPER ROS
+│   └── piper_sdk/                      # PiPER Python SDK
 ├── piper_tomato/                       # 本项目主工作区
 │   ├── PiPER 机械臂接口文档.md         # 接口与命令文档
 │   └── src/
-│       │   app/
-│       │   ├── piper_gui/              # PySide6/QML 多相机 GUI 与 ROI 工具
-│       │   ├── piper_interface/        # ROS Action/Service 接口层
-│       │   └── piper_task/             # 采摘任务管理与状态机
-│       ├── device/
-│       │   └── piper_camera/           # Gemini335L Orbbec 三相机节点
-│       ├── domain/
-│       │   └── trac_ik/                # MoveIt IK 插件封装
-│       │   infra/
-│       │   ├── serail/                 # linux 串口驱动库
-│       │   ├── tl_expected/            # C++23 std::expected 的第三方实现
-│       │   └── tl_optional/            # C++17 std::optional 的第三方实现
-│       ├── platform/
-│       │   ├── piper_controller/       # MoveIt 控制与运动规划封装
-│       │   ├── piper_msgs2/            # 自定义 Action/Service/Msg
-│       │   └── serial_driver/          # 末端串口通信驱动
-│       └── service/
-│           ├── piper_acm_guard/        # 阶段性 ACM 管理
-│           ├── piper_commander/        # 命令分发中心
-│           └── piper_perception/       # 点云生成、TF 变换、Octomap 输入
+│       ├── contract/                   # Action/Service/接口契约
+│       ├── desc_cfg/                   # URDF/Xacro、SRDF、MoveIt 配置
+│       ├── external/                   # piper_tomato 内部第三方库
+│       ├── adapters/                   # 外部框架、硬件、SDK 适配
+│       ├── capabilities/               # 运动、感知、碰撞场景等能力服务
+│       ├── behavior/                   # 任务管理、采摘流程、行为编排
+│       ├── app_tools/                  # GUI、标定和调试工具
+│       └── deployment/                 # bringup launch、运行模式、参数装载
 ├── README.md
 ├── ros_env/                            # Ubuntu 22.04 Noetic 环境管理脚本
 ├── scripts/                            # 启动脚本与测试工具
@@ -116,10 +103,6 @@ piper-ws/
 │   ├── piper-start.sh                  # 系统一键启动脚本
 │   ├── piper_test.py                   # 功能测试脚本
 │   └── config.json                     # 配置文件
-└── tomato_car_description/             # 整车 URDF、MoveIt 与 Mesh
-    └── src/
-        ├── tomato_car_description/     # 整车 URDF、Mesh、模型定义
-        └── tomato_car_moveit/          # MoveIt 规划场景、SRDF、控制器配置
 ```
 
 ---
@@ -146,7 +129,7 @@ sudo apt install -y \
   ros-noetic-moveit-ros-perception \
   ros-noetic-image-geometry
 
-cd ./orbbec/pyorbbecsdk && sudo chmod +x ./install_udev_rules.sh && sudo ./install_udev_rules.sh && sudo udevadm control --reload && sudo udevadm trigger && pip install pyorbbecsdk2 && cd ../../
+cd ./external/orbbec/pyorbbecsdk && sudo chmod +x ./install_udev_rules.sh && sudo ./install_udev_rules.sh && sudo udevadm control --reload && sudo udevadm trigger && pip install pyorbbecsdk2 && cd ../../../
 
 pip install python-can piper_sdk
 sudo usermod -aG dialout $USER
@@ -156,7 +139,7 @@ GUI 默认优先使用仓库内附带的 Maple Mono NF CN 与 JetBrains Mono 字
 
 ```bash
 mkdir -p ~/.local/share/fonts/tomato-picker-piper
-cp piper_tomato/src/app/piper_gui/ttf/*.ttf ~/.local/share/fonts/tomato-picker-piper/
+cp piper_tomato/src/app_tools/piper_gui/ttf/*.ttf ~/.local/share/fonts/tomato-picker-piper/
 fc-cache -fv
 ```
 
@@ -167,7 +150,7 @@ Ubuntu 22.04 使用 `ros_env` / micromamba 请参考 `ros_env/README.md`
 ```bash
 cd /path/to/piper-ws
 
-cd ../orbbec
+cd external/orbbec
 catkin_make \
   -DCATKIN_ENABLE_TESTING=OFF \
   -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
@@ -181,7 +164,7 @@ catkin_make \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 source devel/setup.bash
 
-cd ../piper_tomato
+cd ../../piper_tomato
 catkin_make \
   -DCATKIN_ENABLE_TESTING=OFF \
   -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
@@ -223,9 +206,9 @@ ip link show can0
 
 ```bash
 source piper_tomato/devel/setup.bash
-roslaunch piper_interface piper_start.launch
+roslaunch piper_bringup piper_start.launch
 # 或 fake controller:
-roslaunch piper_interface piper_start.launch use_fake_controller:=true
+roslaunch piper_bringup piper_start.launch use_fake_controller:=true
 ```
 
 ### 5.5 启动 GUI
@@ -235,7 +218,7 @@ source piper_tomato/devel/setup.bash
 roslaunch piper_gui cameras_gui.launch
 ```
 
-GUI 读取 `piper_tomato/src/app/piper_gui/config/cameras_gui.yaml`，默认包含三路相机：
+GUI 读取 `piper_tomato/src/app_tools/piper_gui/config/cameras_gui.yaml`，默认包含三路相机：
 
 | 相机键名 | 角色 | 默认用途 |
 |---|---|---|
@@ -262,13 +245,13 @@ GUI 典型流程：
 
 | Topic | Type | 说明 |
 |---|---|---|
-| `/piper/camera/wrist/color/image_raw` | `sensor_msgs/Image` | 彩色图 |
-| `/piper/camera/wrist/color/camera_info` | `sensor_msgs/CameraInfo` | 彩色相机内参 |
-| `/piper/camera/wrist/depth/image_raw` | `sensor_msgs/Image` | 原始深度，`32FC1`，单位 m |
-| `/piper/camera/wrist/depth/camera_info` | `sensor_msgs/CameraInfo` | 原始深度内参 |
-| `/piper/camera/wrist/depth_registered/image_raw` | `sensor_msgs/Image` | 对齐到彩色图的深度，`32FC1`，单位 m |
-| `/piper/camera/wrist/depth_registered/camera_info` | `sensor_msgs/CameraInfo` | 对齐深度内参 |
-| `/piper/camera/wrist/lrm_distance` | `std_msgs/Float32` | LRM 单点测距，单位 m |
+| `/camera/wrist/color/image_raw` | `sensor_msgs/Image` | 彩色图 |
+| `/camera/wrist/color/camera_info` | `sensor_msgs/CameraInfo` | 彩色相机内参 |
+| `/camera/wrist/depth/image_raw` | `sensor_msgs/Image` | 原始深度，`32FC1`，单位 m |
+| `/camera/wrist/depth/camera_info` | `sensor_msgs/CameraInfo` | 原始深度内参 |
+| `/camera/wrist/depth_registered/image_raw` | `sensor_msgs/Image` | 对齐到彩色图的深度，`32FC1`，单位 m |
+| `/camera/wrist/depth_registered/camera_info` | `sensor_msgs/CameraInfo` | 对齐深度内参 |
+| `/camera/wrist/lrm_distance` | `std_msgs/Float32` | LRM 单点测距，单位 m |
 
 说明：
 
@@ -307,7 +290,7 @@ Octomap 控制服务：
 类型：
 
 ```text
-piper_msgs2/CommandOctomap
+piper_contract/CommandOctomap
 ```
 
 示例：
@@ -367,18 +350,18 @@ rosservice call /piper/perception/set_octomap_enabled "{enabled: true, clear_oct
 
 | 名称 | 类型 | 说明 |
 |---|---|---|
-| `/move_arm` | `piper_msgs2/MoveArmAction` | 完整机械臂命令接口 |
-| `/simple_move_arm` | `piper_msgs2/SimpleMoveArmAction` | 简化机械臂命令接口 |
-| `/pick_action` | `piper_msgs2/PickTaskAction` | 任务组与采摘任务接口 |
+| `/piper/move_arm` | `piper_contract/MoveArmAction` | 完整机械臂命令接口 |
+| `/piper/simple_move_arm` | `piper_contract/SimpleMoveArmAction` | 简化机械臂命令接口 |
+| `/pick_action` | `piper_contract/PickTaskAction` | 任务组与采摘任务接口 |
 
 ### Service
 
 | 名称 | 类型 | 说明 |
 |---|---|---|
-| `/arm_config` | `piper_msgs2/ConfigArm` | 约束配置 |
-| `/arm_query` | `piper_msgs2/QueryArm` | 当前关节/位姿查询 |
-| `/eef_cmd` | `piper_msgs2/CommandEef` | 末端执行器命令 |
-| `/piper/perception/set_octomap_enabled` | `piper_msgs2/CommandOctomap` | Octomap 点云输入开关与异步清图 |
+| `/piper/arm_config` | `piper_contract/ConfigArm` | 约束配置 |
+| `/piper/arm_query` | `piper_contract/QueryArm` | 当前关节/位姿查询 |
+| `/piper/eef_cmd` | `piper_contract/CommandEef` | 末端执行器命令 |
+| `/piper/perception/set_octomap_enabled` | `piper_contract/CommandOctomap` | Octomap 点云输入开关与异步清图 |
 
 详细字段、命令编号与示例见：
 
@@ -393,19 +376,19 @@ piper_tomato/PiPER 机械臂接口文档.md
 ### 查询机械臂状态
 
 ```bash
-rosservice call /arm_query "command_type: 12
+rosservice call /piper/arm_query "command_type: 12
 values: []"
 
-rosservice call /arm_query "command_type: 13
+rosservice call /piper/arm_query "command_type: 13
 values: []"
 ```
 
 ### 检查相机话题
 
 ```bash
-rostopic list | grep /piper/camera/orbbec
-rostopic hz /piper/camera/wrist/depth_registered/image_raw
-rostopic echo -n 1 /piper/camera/wrist/lrm_distance
+rostopic list | grep /camera/orbbec
+rostopic hz /camera/wrist/depth_registered/image_raw
+rostopic echo -n 1 /camera/wrist/lrm_distance
 ```
 
 ### 检查点云
@@ -484,7 +467,7 @@ rosrun tf tf_echo link6 eef_camera_color_optical_frame
 ### 点云没有发布
 
 ```bash
-rostopic echo -n 1 /piper/camera/wrist/depth_registered/image_raw/header
+rostopic echo -n 1 /camera/wrist/depth_registered/image_raw/header
 rostopic hz /piper/perception/cloud/raw
 ```
 
@@ -520,9 +503,9 @@ rostopic hz /piper/perception/cloud/raw
 ## 12. 文档
 
 - [PiPER 机械臂接口文档](piper_tomato/PiPER%20机械臂接口文档.md)
-- [piper_interface 配置](piper_tomato/src/app/piper_interface/config/config.yaml)
+- [piper_bringup 配置](piper_tomato/src/deployment/piper_bringup/config/config.yaml)
 - [hand-eye 手眼标定工具](hand-eye/README.md)
-- [PiPER ROS 官方包](piper_ros/README.MD)
+- [PiPER ROS 官方包](external/piper_ros/README.MD)
 - [PiPER SDK](piper_sdk/README.MD)
 
 ---

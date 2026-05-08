@@ -1,0 +1,26 @@
+camera_role: wrist
+output_ns: /camera/wrist
+
+color_width: 1280
+color_height: 720
+color_fps: 30
+
+depth_width: 1280
+depth_height: 800
+depth_fps: 30
+
+align_to_color: true
+rotate_180: false
+
+min_depth_m: 0.10
+max_depth_m: 10.0
+enable_lrm: true
+publish_rate: 30.0
+
+distortion_model: plumb_bob
+color_distortion: [0.0, 0.0, 0.0, 0.0, 0.0]
+depth_distortion: [0.0, 0.0, 0.0, 0.0, 0.0]
+
+color_frame_id: wrist_cam_color_optical_frame
+depth_frame_id: wrist_cam_depth_optical_frame
+depth_registered_frame_id: wrist_cam_color_optical_frame
