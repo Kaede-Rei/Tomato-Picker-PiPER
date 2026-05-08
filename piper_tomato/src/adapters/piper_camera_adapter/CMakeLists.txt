@@ -13,6 +13,7 @@ catkin_package(
 )
 
 catkin_install_python(PROGRAMS
+  scripts/piper_orbbec_usb.py
   scripts/orbbec_wrist.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

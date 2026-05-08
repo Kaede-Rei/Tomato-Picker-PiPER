@@ -4,8 +4,14 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+BASE_SETUP="$SCRIPT_DIR/../external/orbbec/devel/setup.bash"
+if [ -f "$BASE_SETUP" ]; then
+    source "$BASE_SETUP"
+else
+    echo "[WARN] ROS setup not found: $BASE_SETUP" >&2
+fi
+
 for setup in \
-    "$SCRIPT_DIR/../external/orbbec/devel/setup.bash" \
     "$SCRIPT_DIR/../external/piper_ros/devel/setup.bash" \
     "$SCRIPT_DIR/../piper_tomato/devel/setup.bash"; do
     if [ -f "$setup" ]; then

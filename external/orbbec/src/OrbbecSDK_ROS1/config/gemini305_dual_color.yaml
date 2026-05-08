@@ -27,7 +27,7 @@ align_mode: SW
 align_target_stream: COLOR
 diagnostic_period: 1.0
 device_preset: Dual Color Streams
-retry_on_usb3_detection_failure: true
+retry_on_usb3_detection_failure: false
 enable_sync_host_time: true
 time_sync_period: 6.0
 time_domain: global

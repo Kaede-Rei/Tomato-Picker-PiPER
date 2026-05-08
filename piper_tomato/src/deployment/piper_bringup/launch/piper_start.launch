@@ -5,7 +5,7 @@
     <arg name="auto_enable" default="true" />
 
     <!-- 相机参数 -->
-    <arg name="use_wrist_camera" default="true" />
+    <arg name="use_wrist_camera" default="false" />
     <arg name="use_mid_camera" default="false" />
     <arg name="use_far_camera" default="false" />
     <arg name="wrist_usb_port" default=""/>

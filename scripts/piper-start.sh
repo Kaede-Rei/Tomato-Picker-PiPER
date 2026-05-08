@@ -23,21 +23,27 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ORBBEC_USB_RESOLVER="$SCRIPT_DIR/../piper_tomato/src/adapters/piper_camera_adapter/scripts/piper_orbbec_usb.py"
 
-# source ROS 环境
-if [ -f "$SCRIPT_DIR/../external/piper_ros/devel/setup.bash" ]; then
-    source "$SCRIPT_DIR/../external/piper_ros/devel/setup.bash"
+# source ROS 环境。第一个工作区不使用 --extend，避免继承调用 shell 里的脏 overlay。
+BASE_SETUP="$SCRIPT_DIR/../external/orbbec/devel/setup.bash"
+if [ -f "$BASE_SETUP" ]; then
+    source "$BASE_SETUP"
 else
-    echo "未找到 PiPER ROS 工作空间，请先编译 ROS 包"
+    echo "未找到 ROS 工作空间 setup: $BASE_SETUP，请先编译 ROS 包"
     exit 1
 fi
 
-if [ -f "$SCRIPT_DIR/../piper_tomato/devel/setup.bash" ]; then
-    source "$SCRIPT_DIR/../piper_tomato/devel/setup.bash"
-else
-    echo "未找到 PiPER Tomato 工作空间，请先编译 ROS 包"
-    exit 1
-fi
+for setup in \
+    "$SCRIPT_DIR/../external/piper_ros/devel/setup.bash" \
+    "$SCRIPT_DIR/../piper_tomato/devel/setup.bash"; do
+    if [ -f "$setup" ]; then
+        source "$setup" --extend
+    else
+        echo "未找到 ROS 工作空间 setup: $setup，请先编译 ROS 包"
+        exit 1
+    fi
+done
 
 # 读取 config.json 配置默认参数
 CONFIG_FILE="$SCRIPT_DIR/config.json"
@@ -131,6 +137,37 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+resolve_orbbec_usb_launch_args() {
+    if [ ! -x "$ORBBEC_USB_RESOLVER" ]; then
+        echo "[ERROR] 未找到 Orbbec USB 端口解析器: $ORBBEC_USB_RESOLVER"
+        exit 1
+    fi
+
+    local resolved_args=()
+    local item key value resolved
+    for item in "${LAUNCH_ARGS[@]}"; do
+        if [[ "$item" =~ ^(wrist_usb_port|mid_usb_port|far_usb_port):=(.+)$ ]]; then
+            key="${BASH_REMATCH[1]}"
+            value="${BASH_REMATCH[2]}"
+            if [[ -n "$value" ]]; then
+                if ! resolved="$(python3 "$ORBBEC_USB_RESOLVER" --strict "$value")"; then
+                    echo "[ERROR] $key 无法解析为 Orbbec SDK USB UID: $value"
+                    exit 1
+                fi
+                if [[ "$resolved" != "$value" ]]; then
+                    echo "[USB] $key: $value -> $resolved"
+                fi
+                resolved_args+=("$key:=$resolved")
+                continue
+            fi
+        fi
+        resolved_args+=("$item")
+    done
+    LAUNCH_ARGS=("${resolved_args[@]}")
+}
+
+resolve_orbbec_usb_launch_args
 
 cleanup() {
     # 防止重复进入 cleanup
