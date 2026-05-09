@@ -19,14 +19,14 @@ piper_tomato/src/contract/piper_contract
 
 ```text
 src
-├── 0. external/                   # piper_tomato 内部第三方库
-├── 1. contract/                   # Action/Service/接口契约
-├── 2. desc_cfg/                   # URDF/Xacro、SRDF、MoveIt 配置
-├── 3. adapters/                   # 外部框架、硬件、SDK 适配
-├── 4. capabilities/               # 运动、感知、碰撞场景等能力服务
-├── 5. behavior/                   # 任务管理、采摘流程、行为编排
-├── 6. app_tools/                  # GUI、标定和调试工具
-└── 7. deployment/                 # bringup launch、运行模式、参数装载
+├── 0. external/        # 第三方库层：   piper_tomato 内部第三方库
+├── 1. contract/        # 契约层：       Action/Service/接口契约
+├── 2. desc_cfg/        # 模型与配置层： URDF/Xacro、SRDF、MoveIt 配置
+├── 3. adapters/        # 适配层：       外部框架、硬件、SDK 适配
+├── 4. capabilities/    # 能力层：       运动、感知、碰撞场景等能力服务
+├── 5. behavior/        # 行为层：       任务管理、采摘流程、行为编排
+├── 6. app_tools/       # 应用工具层：   GUI、标定和调试工具
+└── 7. deployment/      # 部署层：       bringup launch、运行模式、参数装载
 ```
 
 ---

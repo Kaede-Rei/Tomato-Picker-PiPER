@@ -65,6 +65,7 @@ set(LIB_NAME ${PROJECT_NAME})
 set(LIB_SOURCES
   src/tasks_manager.cpp
   src/pick_action.cpp
+  src/optimal_step_planner.cpp
 )
 
 if(LIB_SOURCES)
