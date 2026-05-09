@@ -88,9 +88,9 @@ piper-ws/
 ├── piper_tomato/                       # 本项目主工作区
 │   ├── PiPER 机械臂接口文档.md         # 接口与命令文档
 │   └── src/
+│       ├── external/                   # piper_tomato 内部第三方库
 │       ├── contract/                   # Action/Service/接口契约
 │       ├── desc_cfg/                   # URDF/Xacro、SRDF、MoveIt 配置
-│       ├── external/                   # piper_tomato 内部第三方库
 │       ├── adapters/                   # 外部框架、硬件、SDK 适配
 │       ├── capabilities/               # 运动、感知、碰撞场景等能力服务
 │       ├── behavior/                   # 任务管理、采摘流程、行为编排

@@ -29,7 +29,7 @@ pip install fast-simplification trimesh
 # build the workspace
 . ./ros_env/use-mamba-gcc.sh && cd ./external/orbbec && catkin_make -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 && source devel/setup.bash && cd ../piper_ros && catkin_make -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 && source devel/setup.bash && cd ../../piper_tomato && catkin_make -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 && source devel/setup.bash && cd ..
 # or if you need clangd
-. ./ros_env/use-mamba-gcc.sh && cd ./external/orbbec && catkin_make -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && source devel/setup.bash && cd ../piper_ros && catkin_make -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && source devel/setup.bash && cd ../../piper_tomato && catkin_make -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && source devel/setup.bash && cd .. && ln -sf piper_tomato/build/compile_commands.json ./build/compile_commands.json
+. ./ros_env/use-mamba-gcc.sh && cd ./external/orbbec && catkin_make -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && source devel/setup.bash && cd ../piper_ros && catkin_make -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && source devel/setup.bash && cd ../../piper_tomato && catkin_make -DCATKIN_ENABLE_TESTING=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && source devel/setup.bash && cd .. && ln -sf ../piper_tomato/build/compile_commands.json ../build/compile_commands.json
 # run the demo
 ./scripts/piper-start.sh
 ```
