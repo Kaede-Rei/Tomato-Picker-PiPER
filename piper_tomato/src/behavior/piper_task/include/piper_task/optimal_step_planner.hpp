@@ -82,6 +82,14 @@ private:
     OptimalStepErrorCode validate_config(const OptimalStepPlannerConfig& config);
     OptimalStepErrorCode validate_task_group(const TaskGroup& task_group);
 
+    tl::optional<geometry_msgs::Point> extract_task_point(const Task& task) const;
+    bool is_in_arm_workspace(const geometry_msgs::Point& point) const;
+
+    TaskGroup build_valid_task_group(const TaskGroup& task_group);
+    TaskGroup build_invalid_task_group(const TaskGroup& task_group);
+    TaskGroup build_ordered_task_group(const TaskGroup& task_group);
+    double rate_candidate_step(const TaskGroup& task_group, double step);
+
 private:
     OptimalStepPlannerConfig config_;
 
@@ -91,4 +99,4 @@ private:
 
 // ! ========================= 模 版 方 法 实 现 ========================= ! //
 
-}
+} /* namespace piper */
