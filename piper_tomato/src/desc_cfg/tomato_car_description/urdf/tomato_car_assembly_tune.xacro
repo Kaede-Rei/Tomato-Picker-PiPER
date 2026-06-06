@@ -30,7 +30,7 @@
 
     <xacro:tunable_mount prefix="wrist_cam_tune" parent="${arm_prefix}_link6" child="wrist_cam_tune_mount_link" xyz_limit="0.3" rpy_limit="3.14159"/>
 
-    <xacro:gemini335L_336L_camera prefix="wrist_cam" parent="wrist_cam_tune_mount_link">
+    <xacro:gemini335L_336L_camera prefix="wrist_cam" parent="wrist_cam_tune_mount_link" use_collision="true">
         <origin xyz="0.041 -0.048 0.064" rpy="3.14 -1.57 0"/>
     </xacro:gemini335L_336L_camera>
 
@@ -42,7 +42,7 @@
     <xacro:tunable_mount prefix="mid_cam_tune" parent="base_link" child="mid_cam_tune_mount_link" xyz_limit="2.0" rpy_limit="3.14159"/>
 
     <xacro:femto_bolt_camera prefix="mid_cam" parent="mid_cam_tune_mount_link" mesh_dir="mid_camera">
-        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <origin xyz="0.284 0.0335 0.5735" rpy="0 -0.458 1.57"/>
     </xacro:femto_bolt_camera>
 
 
