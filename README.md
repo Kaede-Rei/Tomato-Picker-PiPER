@@ -175,7 +175,7 @@ source devel/setup.bash
 ### 5.3 激活 CAN
 
 ```bash
-source can-activate.sh
+./scripts/can-activate.sh
 ```
 
 或手动：
@@ -189,17 +189,17 @@ ip link show can0
 ### 5.4 启动系统（piper-start.sh 包含 can 激活、机械臂模型、感知接口、控制接口等全链路启动）
 
 ```bash
-./piper-start.sh
+./scripts/piper-start.sh
 ```
 
 可选参数：
 
 ```bash
-./piper-start.sh --real   # 默认：启动真机控制节点，MoveIt 使用 simple controller
-./piper-start.sh --fake   # 只启动 MoveIt fake_controller，跳过 CAN 和真机控制节点
-./piper-start.sh --disable
-./piper-start.sh --delay 5
-./piper-start.sh --disable --delay 8
+./scripts/piper-start.sh --real   # 默认：启动真机控制节点，MoveIt 使用 simple controller
+./scripts/piper-start.sh --fake   # 只启动 MoveIt fake_controller，跳过 CAN 和真机控制节点
+./scripts/piper-start.sh --disable
+./scripts/piper-start.sh --delay 5
+./scripts/piper-start.sh --disable --delay 8
 ```
 
 手动启动：
@@ -209,6 +209,17 @@ source piper_tomato/devel/setup.bash
 roslaunch piper_bringup piper_start.launch
 # 或 fake controller:
 roslaunch piper_bringup piper_start.launch use_fake_controller:=true
+```
+
+参数配置：
+
+- 启动脚本位于 `./scripts/piper-start.sh`
+- 默认配置文件位于 `./scripts/config.json`
+- `--fake` / `--real` / `--disable` / `--delay` 会覆盖 `config.json` 中对应配置
+- 也可以直接透传额外 `roslaunch` 参数，例如：
+
+```bash
+./scripts/piper-start.sh use_fake_controller:=true wrist_usb_port:=/dev/video0
 ```
 
 ### 5.5 启动 GUI

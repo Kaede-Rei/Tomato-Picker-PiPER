@@ -14,7 +14,7 @@
         "use_mid_camera": false,
         "mid_usb_port": "/dev/com-1.1-video",
         "mid_index": "",
-        "use_far_camera": true,
+        "use_far_camera": false,
         "far_usb_port": "/dev/com-1-video",
         "far_index": "",
         "use_perception": false,
